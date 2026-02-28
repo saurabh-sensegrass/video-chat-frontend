@@ -22,6 +22,7 @@ import {
   Phone,
   Settings2,
   Moon,
+  X,
   Maximize,
   Minimize,
   Check,
@@ -139,7 +140,7 @@ function VideoModal({
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 z-50 bg-black/90 p-4 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8 backdrop-blur-md"
+      className="fixed inset-0 z-50 bg-black/90 p-4 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8 backdrop-blur-md overscroll-none"
     >
       {/* Video Area */}
       <div className="flex-1 flex flex-col h-full rounded-3xl overflow-hidden relative bg-zinc-900 border border-zinc-800">
@@ -289,14 +290,23 @@ function VideoModal({
       {/* Ephemeral Chat Panel */}
       {callState === "connected" && showChat && (
         <div className="absolute md:relative bottom-4 right-4 md:bottom-auto md:right-auto z-40 h-[50dvh] md:h-full w-[calc(100%-32px)] sm:w-[350px] md:w-80 lg:w-96 flex flex-col bg-zinc-900/95 backdrop-blur-2xl border border-zinc-800 rounded-3xl overflow-hidden shrink-0 animate-in slide-in-from-right-8 duration-300 shadow-2xl">
-          <div className="p-5 border-b border-zinc-800/80 bg-zinc-900/50 backdrop-blur-sm">
+          <div className="p-4 sm:p-5 border-b border-zinc-800/80 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-between">
             <h3 className="font-semibold text-zinc-100 flex items-center gap-2">
               <Moon className="w-4 h-4 text-indigo-400" />
               In-Call Chat{" "}
-              <span className="text-xs font-normal text-zinc-500 ml-auto bg-zinc-800 px-2 py-0.5 rounded-full">
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] sm:text-xs font-normal text-zinc-500 bg-zinc-800 px-1.5 sm:px-2 py-0.5 rounded-full">
                 Not Saved
               </span>
-            </h3>
+              <button
+                onClick={() => setShowChat(false)}
+                className="p-1 sm:p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors ml-1"
+                aria-label="Close chat"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
             {ephemeralMessages.map((msg) => {
@@ -783,7 +793,7 @@ export default function ChatPage() {
     : false;
 
   return (
-    <div className="h-[100dvh] w-full bg-zinc-950 flex flex-col lg:flex-row overflow-hidden relative">
+    <div className="fixed inset-0 w-full bg-zinc-950 flex flex-col lg:flex-row overflow-hidden overscroll-none">
       {/* Video Call Modal Overlay */}
       {callState !== "idle" && (
         <VideoModal
@@ -797,7 +807,7 @@ export default function ChatPage() {
       )}
 
       {/* Main Persistent Chat Area */}
-      <div className="flex-1 flex flex-col h-full bg-zinc-950 overflow-hidden relative">
+      <div className="flex-1 min-h-0 flex flex-col h-full bg-zinc-950 overflow-hidden relative">
         {/* Chat Header */}
         <header className="h-[72px] lg:h-20 shrink-0 border-b border-zinc-800/80 flex items-center justify-between px-4 lg:px-10 bg-zinc-950/50 backdrop-blur-md z-10 w-full">
           <div className="flex items-center gap-3 sm:gap-4 shrink-0 overflow-hidden">
@@ -857,7 +867,7 @@ export default function ChatPage() {
         </header>
 
         {/* Messages List */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 lg:p-10 space-y-4 lg:space-y-6 flex flex-col w-full scroll-smooth">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-6 lg:p-10 space-y-4 lg:space-y-6 flex flex-col w-full scroll-smooth">
           {!saveHistory && (
             <div className="text-center mb-8">
               <span className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-xs font-medium text-zinc-400 rounded-full border border-zinc-800">

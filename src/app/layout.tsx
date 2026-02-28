@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.className} bg-gray-50 text-gray-900 antialiased min-h-screen`}
+        className={`${inter.className} bg-gray-50 text-gray-900 antialiased min-h-screen overscroll-none`}
       >
         <AuthProvider>
           <SocketProvider>
