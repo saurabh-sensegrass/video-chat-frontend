@@ -82,6 +82,7 @@ function VideoModal({
     isMicOn,
     acceptCall,
     rejectCall,
+    cancelCall,
     endCall,
     toggleCamera,
     toggleMic,
@@ -183,7 +184,15 @@ function VideoModal({
                 <div className="w-20 h-20 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mb-6 animate-pulse">
                   <Phone className="w-8 h-8" />
                 </div>
-                <p className="text-xl font-medium text-zinc-300">Calling...</p>
+                <p className="text-xl font-medium text-zinc-300 mb-8">
+                  Calling...
+                </p>
+                <button
+                  onClick={cancelCall}
+                  className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 shadow-lg shadow-red-500/20"
+                >
+                  <PhoneOff className="w-6 h-6" />
+                </button>
               </>
             ) : callState === "receiving" ? (
               <>

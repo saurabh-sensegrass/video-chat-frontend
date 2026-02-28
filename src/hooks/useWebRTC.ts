@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Socket } from "socket.io-client";
+import { toast } from "react-hot-toast";
 
 export type CallState = "idle" | "calling" | "receiving" | "connected";
 
@@ -105,11 +106,37 @@ export function useWebRTC(
     return pc;
   };
 
+  const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearCallTimeout = () => {
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
+  };
+
+  const cancelCall = () => {
+    if (!socket || !remoteUserId) return;
+    socket.emit("webrtc-call-ended", { receiverId: remoteUserId });
+    setCallState("idle");
+    setRemoteUserId(null);
+    clearCallTimeout();
+  };
+
   const initiateCall = async (receiverId: string) => {
     if (!socket || callState !== "idle") return;
     setRemoteUserId(receiverId);
     setCallState("calling");
     socket.emit("webrtc-call-initiate", { receiverId });
+
+    // Set 50s timeout for auto cancellation
+    clearCallTimeout();
+    callTimeoutRef.current = setTimeout(() => {
+      // If the timeout fires, it means the peer hasn't accepted/rejected
+      // We can directly call cancelCall since we're tracking the timeout clearance correctly.
+      cancelCall();
+      toast("Call unanswered", { icon: "📴" });
+    }, 50000);
   };
 
   const acceptCall = async () => {
@@ -273,6 +300,7 @@ export function useWebRTC(
       socket.off("webrtc-answer");
       socket.off("webrtc-ice-candidate");
       socket.off("webrtc-call-ended");
+      clearCallTimeout();
     };
   }, [
     socket,
@@ -314,6 +342,7 @@ export function useWebRTC(
     initiateCall,
     acceptCall,
     rejectCall,
+    cancelCall,
     endCall,
     toggleCamera,
     toggleMic,
