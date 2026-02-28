@@ -117,7 +117,7 @@ export function useWebRTC(
 
   const cancelCall = () => {
     if (!socket || !remoteUserId) return;
-    socket.emit("webrtc-call-ended", { receiverId: remoteUserId });
+    socket.emit("webrtc-call-end", { receiverId: remoteUserId });
     setCallState("idle");
     setRemoteUserId(null);
     clearCallTimeout();
@@ -179,6 +179,7 @@ export function useWebRTC(
       "webrtc-call-accepted",
       async ({ receiverId }: { receiverId: string }) => {
         if (callState === "calling" && remoteUserId === receiverId) {
+          clearCallTimeout();
           setCallState("connected");
           const stream = await initLocalStream();
           if (!stream) {
@@ -202,6 +203,7 @@ export function useWebRTC(
       "webrtc-call-rejected",
       ({ receiverId }: { receiverId: string }) => {
         if (callState === "calling" && remoteUserId === receiverId) {
+          clearCallTimeout();
           alert("Call was rejected");
           setCallState("idle");
           setRemoteUserId(null);
@@ -280,6 +282,9 @@ export function useWebRTC(
 
     socket.on("webrtc-call-ended", ({ senderId }: { senderId: string }) => {
       if (remoteUserId === senderId) {
+        if (callState === "receiving") {
+          toast("Missed Call", { icon: "📵" });
+        }
         if (peerConnectionRef.current) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
