@@ -260,6 +260,21 @@ export default function GuestVideoRoom() {
     router.push("/join-video");
   };
 
+  // 5-Minute Inactivity Timeout
+  useEffect(() => {
+    if (!isJoined || callState === "connected") return;
+
+    const timeout = setTimeout(() => {
+      toast("No partner joined within 5 minutes. The room has timed out.", {
+        icon: "⏳",
+        duration: 6000,
+      });
+      handleDisconnect();
+    }, 300000); // 5 minutes
+
+    return () => clearTimeout(timeout);
+  }, [isJoined, callState, handleDisconnect]);
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       containerRef.current?.requestFullscreen().catch((err) => {

@@ -8,8 +8,14 @@ import { Toaster } from "react-hot-toast";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Video Chat App",
-  description: "Private 1-to-1 video chat application",
+  title: "Video Chat App | Private Calls",
+  description:
+    "Secure, private 1-to-1 video chat application with screen sharing.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
