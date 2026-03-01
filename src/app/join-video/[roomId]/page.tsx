@@ -23,6 +23,8 @@ import {
   MonitorUp,
   MonitorOff,
   ShieldAlert,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -56,6 +58,7 @@ export default function GuestVideoRoom() {
   const [showRoomDetails, setShowRoomDetails] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [remoteVideoZoom, setRemoteVideoZoom] = useState(1);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -352,6 +355,7 @@ export default function GuestVideoRoom() {
     >
       {/* Video Area */}
       <div className="flex-1 flex flex-col h-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-zinc-900 border border-zinc-800">
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.05] mix-blend-overlay pointer-events-none z-10"></div>
         {/* Top Overlay Actions */}
         <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-start pointer-events-none">
           <div
@@ -461,6 +465,38 @@ export default function GuestVideoRoom() {
                 <Maximize className="w-5 h-5" />
               )}
             </button>
+
+            {/* Zoom Controls */}
+            {callState === "connected" && (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() =>
+                    setRemoteVideoZoom((prev) => Math.min(prev + 0.2, 3))
+                  }
+                  className="w-10 sm:w-12 h-10 sm:h-12 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() =>
+                    setRemoteVideoZoom((prev) => Math.max(prev - 0.2, 1))
+                  }
+                  className="w-10 sm:w-12 h-10 sm:h-12 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-5 h-5" />
+                </button>
+                {remoteVideoZoom > 1 && (
+                  <button
+                    onClick={() => setRemoteVideoZoom(1)}
+                    className="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg animate-in fade-in zoom-in duration-200"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -470,9 +506,10 @@ export default function GuestVideoRoom() {
             ref={remoteVideoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover transition-all"
+            className={`w-full h-full transition-all ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "sm:object-cover object-contain"}`}
             style={{
-              transform: isRemoteScreenSharing ? "none" : "scaleX(-1)", // Mirrored for the remote person unless screen sharing
+              transform: `${isRemoteScreenSharing ? "" : "scaleX(-1) "}scale(${remoteVideoZoom})`, // Mirrored for the remote person unless screen sharing, plus zoom
+              filter: "brightness(1.05) contrast(1.05) saturate(1.05)", // Enhancement filter
             }}
           />
         ) : (
@@ -541,7 +578,7 @@ export default function GuestVideoRoom() {
         </div>
 
         {/* Media Controls */}
-        <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] sm:max-w-none flex justify-center items-center gap-2 sm:gap-3 bg-zinc-950/80 backdrop-blur-xl px-3 sm:px-6 py-2.5 sm:py-4 rounded-[2rem] sm:rounded-full border border-zinc-800 shadow-2xl z-20 overflow-x-auto no-scrollbar pointer-events-auto">
+        <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-auto max-w-[calc(100vw-2rem)] flex sm:inline-flex items-center gap-2 sm:gap-3 bg-zinc-950/85 backdrop-blur-2xl px-4 sm:px-6 py-3 sm:py-4 rounded-[2.5rem] sm:rounded-full border border-zinc-800/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-20 overflow-x-auto no-scrollbar pointer-events-auto shrink-0 min-w-0 justify-start sm:justify-center">
           <button
             onClick={toggleMic}
             className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isMicOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
