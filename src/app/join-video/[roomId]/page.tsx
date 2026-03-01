@@ -20,6 +20,9 @@ import {
   Users,
   RefreshCcw,
   Info,
+  MonitorUp,
+  MonitorOff,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -44,10 +47,12 @@ export default function GuestVideoRoom() {
   const [isRoomFull, setIsRoomFull] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [remoteUserName, setRemoteUserName] = useState<string | null>(null);
+  const [isCreator, setIsCreator] = useState(false);
 
   const [messages, setMessages] = useState<GuestMessage[]>([]);
   const [inputMsg, setInputMsg] = useState("");
   const [showChat, setShowChat] = useState(false);
+  const [showHostControls, setShowHostControls] = useState(false);
   const [showRoomDetails, setShowRoomDetails] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -98,8 +103,11 @@ export default function GuestVideoRoom() {
     toggleCamera,
     toggleMic,
     switchCamera,
+    toggleScreenShare,
     availableCameras,
     initLocalStream,
+    isScreenSharing,
+    isRemoteScreenSharing,
   } = webrtc;
 
   // Initial Join Logic
@@ -127,6 +135,21 @@ export default function GuestVideoRoom() {
     socket.on("room-full", () => {
       setIsRoomFull(true);
       setIsJoined(false);
+    });
+
+    socket.on("room-creator", () => {
+      setIsCreator(true);
+    });
+
+    socket.on("host-disconnected", () => {
+      toast("The Room Host has disconnected. The call is ending.", {
+        icon: "⚠️",
+        duration: 5000,
+      });
+      setTimeout(() => {
+        endCall();
+        router.push("/join-video");
+      }, 2000);
     });
 
     socket.on(
@@ -192,6 +215,8 @@ export default function GuestVideoRoom() {
 
     return () => {
       socket.off("room-full");
+      socket.off("room-creator");
+      socket.off("host-disconnected");
       socket.off("user-joined");
       socket.off("existing-user");
       socket.off("user-left");
@@ -447,7 +472,7 @@ export default function GuestVideoRoom() {
             playsInline
             className="w-full h-full object-cover transition-all"
             style={{
-              transform: "scaleX(-1)", // Mirrored for the remote person
+              transform: isRemoteScreenSharing ? "none" : "scaleX(-1)", // Mirrored for the remote person unless screen sharing
             }}
           />
         ) : (
@@ -486,13 +511,14 @@ export default function GuestVideoRoom() {
             playsInline
             muted
             className="w-full h-full object-cover"
-            style={{ transform: "scaleX(-1)" }}
+            style={{ transform: isScreenSharing ? "none" : "scaleX(-1)" }}
           />
           {!isCameraOn && (
             <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
               <VideoOff className="w-6 h-6 text-zinc-500" />
             </div>
           )}
+
           <div className="absolute bottom-2 left-2 bg-black/60 pr-2 pl-1 py-1 rounded-md text-[10px] text-white backdrop-blur-md flex items-center gap-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
             <button
               onClick={(e) => {
@@ -515,7 +541,7 @@ export default function GuestVideoRoom() {
         </div>
 
         {/* Media Controls */}
-        <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-[90%] md:w-auto max-w-md flex justify-center items-center gap-2 sm:gap-4 bg-zinc-950/80 backdrop-blur-xl px-4 sm:px-6 py-3 sm:py-4 rounded-3xl sm:rounded-full border border-zinc-800 shadow-2xl z-20">
+        <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] sm:max-w-none flex justify-center items-center gap-2 sm:gap-3 bg-zinc-950/80 backdrop-blur-xl px-3 sm:px-6 py-2.5 sm:py-4 rounded-[2rem] sm:rounded-full border border-zinc-800 shadow-2xl z-20 overflow-x-auto no-scrollbar pointer-events-auto">
           <button
             onClick={toggleMic}
             className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isMicOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
@@ -537,6 +563,18 @@ export default function GuestVideoRoom() {
             )}
           </button>
 
+          <button
+            onClick={toggleScreenShare}
+            className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${!isScreenSharing ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"}`}
+            title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
+          >
+            {isScreenSharing ? (
+              <MonitorOff className="w-5 h-5" />
+            ) : (
+              <MonitorUp className="w-5 h-5" />
+            )}
+          </button>
+
           {availableCameras && availableCameras.length > 1 && (
             <button
               onClick={switchCamera}
@@ -547,10 +585,26 @@ export default function GuestVideoRoom() {
             </button>
           )}
 
-          <div className="w-px h-8 bg-zinc-800 mx-1 sm:mx-2 shrink-0"></div>
+          <div className="w-px h-8 bg-zinc-800 mx-1 shrink-0"></div>
+
+          {isCreator && (
+            <button
+              onClick={() => {
+                setShowHostControls((prev) => !prev);
+                if (!showHostControls) setShowChat(false);
+              }}
+              className={`w-10 sm:w-12 h-10 sm:h-12 shrink-0 rounded-full flex items-center justify-center transition-colors relative ${showHostControls ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" : "bg-zinc-800 hover:bg-zinc-700 text-white"}`}
+              title="Host Controls"
+            >
+              <ShieldAlert className="w-4 sm:w-5 h-4 sm:h-5" />
+            </button>
+          )}
 
           <button
-            onClick={() => setShowChat((prev) => !prev)}
+            onClick={() => {
+              setShowChat((prev) => !prev);
+              if (!showChat) setShowHostControls(false);
+            }}
             className={`w-10 sm:w-12 h-10 sm:h-12 shrink-0 rounded-full flex items-center justify-center transition-colors relative ${showChat ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-800 hover:bg-zinc-700 text-white"}`}
           >
             <Moon className="w-4 sm:w-5 h-4 sm:h-5" />
@@ -559,16 +613,94 @@ export default function GuestVideoRoom() {
             )}
           </button>
 
-          <div className="w-px h-8 bg-zinc-800 mx-1 sm:mx-2 shrink-0 hidden sm:block"></div>
+          <div className="w-px h-8 bg-zinc-800 mx-1 shrink-0"></div>
 
           <button
             onClick={handleDisconnect}
-            className="w-12 sm:w-14 h-12 sm:h-14 shrink-0 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 shadow-lg shadow-red-600/30 ml-auto sm:ml-0"
+            className="w-11 sm:w-14 h-11 sm:h-14 shrink-0 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 shadow-lg shadow-red-600/30"
           >
             <PhoneOff className="w-5 sm:w-6 h-5 sm:h-6" />
           </button>
         </div>
       </div>
+
+      {/* Host Controls Panel */}
+      {showHostControls && isCreator && (
+        <div className="absolute md:relative bottom-4 right-4 md:bottom-auto md:right-auto z-40 h-[60dvh] md:h-full w-[calc(100%-32px)] sm:w-[350px] md:w-80 lg:w-96 flex flex-col bg-zinc-900/95 backdrop-blur-2xl border border-zinc-800 rounded-3xl overflow-hidden shrink-0 animate-in slide-in-from-right-8 duration-300 shadow-2xl">
+          <div className="p-4 sm:p-5 border-b border-zinc-800/80 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-between">
+            <h3 className="font-semibold text-zinc-100 flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-500" />
+              Host Controls
+            </h3>
+            <button
+              onClick={() => setShowHostControls(false)}
+              className="p-1 sm:p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+              aria-label="Close host controls"
+            >
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          </div>
+          <div className="flex-1 p-4 sm:p-5 flex flex-col gap-3 overflow-y-auto">
+            <p className="text-xs text-zinc-400 mb-2">
+              Manage the guest&apos;s media permissions below.
+            </p>
+            <button
+              onClick={() =>
+                socket?.emit("host-action", { roomId, action: "mute" })
+              }
+              className="flex items-center gap-3 p-3 bg-zinc-800/50 hover:bg-zinc-800 rounded-xl transition-colors border border-zinc-700/50 text-white w-full text-left group"
+            >
+              <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-zinc-700 transition-colors">
+                <MicOff className="w-4 h-4 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-sm">Mute Guest</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">
+                  Turn off their microphone
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() =>
+                socket?.emit("host-action", {
+                  roomId,
+                  action: "disable-camera",
+                })
+              }
+              className="flex items-center gap-3 p-3 bg-zinc-800/50 hover:bg-zinc-800 rounded-xl transition-colors border border-zinc-700/50 text-white w-full text-left group"
+            >
+              <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-zinc-700 transition-colors">
+                <VideoOff className="w-4 h-4 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-sm">Stop Camera</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">
+                  Turn off their video feed
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() =>
+                socket?.emit("host-action", {
+                  roomId,
+                  action: "disable-screen-share",
+                })
+              }
+              className="flex items-center gap-3 p-3 bg-zinc-800/50 hover:bg-zinc-800 rounded-xl transition-colors border border-zinc-700/50 text-white w-full text-left group"
+            >
+              <div className="p-2 bg-zinc-900 rounded-lg group-hover:bg-zinc-700 transition-colors">
+                <MonitorOff className="w-4 h-4 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-sm">Stop Screen Share</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">
+                  Force end their presentation
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Guest Chat Panel */}
       {showChat && (

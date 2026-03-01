@@ -13,6 +13,9 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
+  const screenTrackRef = useRef<MediaStreamTrack | null>(null);
 
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>(
     [],
@@ -240,6 +243,54 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     };
   }, [socket, roomId, initLocalStream, createPeerConnection]);
 
+  // Host Action Listener
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("host-action", ({ action }: { action: string }) => {
+      if (action === "mute" && localStreamRef.current) {
+        const audioTrack = localStreamRef.current.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = false;
+          setIsMicOn(false);
+        }
+      } else if (action === "disable-camera" && localStreamRef.current) {
+        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.enabled = false;
+          setIsCameraOn(false);
+        }
+      } else if (action === "disable-screen-share" && isScreenSharing) {
+        // Automatically turn off screen share via state effect hack or manual disable
+        if (screenTrackRef.current) {
+          screenTrackRef.current.stop();
+          screenTrackRef.current = null;
+        }
+        setIsScreenSharing(false);
+
+        // Revert track to camera
+        const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (videoTrack && peerConnectionRef.current) {
+          const sender = peerConnectionRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "video");
+          if (sender) sender.replaceTrack(videoTrack).catch(console.error);
+        }
+      }
+    });
+
+    socket.on(
+      "guest-screen-share-status",
+      ({ isScreenSharing }: { isScreenSharing: boolean }) => {
+        setIsRemoteScreenSharing(isScreenSharing);
+      },
+    );
+
+    return () => {
+      socket.off("host-action");
+      socket.off("guest-screen-share-status");
+    };
+  }, [socket, isScreenSharing]);
+
   // Reactively attach local stream
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -322,17 +373,107 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     }
   }, [availableCameras, currentCameraId, isCameraOn]);
 
+  const toggleScreenShare = useCallback(async () => {
+    try {
+      if (isScreenSharing) {
+        // Stop screen share
+        if (screenTrackRef.current) {
+          screenTrackRef.current.stop();
+          screenTrackRef.current = null;
+        }
+        setIsScreenSharing(false);
+        socket?.emit("guest-screen-share-status", {
+          roomId,
+          isScreenSharing: false,
+        });
+
+        // Revert to camera
+        const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (videoTrack && peerConnectionRef.current) {
+          const sender = peerConnectionRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "video");
+          if (sender) {
+            await sender.replaceTrack(videoTrack);
+          }
+        }
+
+        // Fix local video preview
+        if (localVideoRef.current && localStreamRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+      } else {
+        // Start screen share
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: false,
+        });
+        const screenTrack = displayStream.getVideoTracks()[0];
+
+        screenTrack.onended = () => {
+          // Handle user pressing browser's native stop sharing button
+          if (screenTrackRef.current) {
+            screenTrackRef.current.stop();
+            screenTrackRef.current = null;
+          }
+          setIsScreenSharing(false);
+          socket?.emit("guest-screen-share-status", {
+            roomId,
+            isScreenSharing: false,
+          });
+          const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+          if (videoTrack && peerConnectionRef.current) {
+            const sender = peerConnectionRef.current
+              .getSenders()
+              .find((s) => s.track?.kind === "video");
+            if (sender) sender.replaceTrack(videoTrack).catch(console.error);
+          }
+          if (localVideoRef.current && localStreamRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+          }
+        };
+
+        screenTrackRef.current = screenTrack;
+        setIsScreenSharing(true);
+        socket?.emit("guest-screen-share-status", {
+          roomId,
+          isScreenSharing: true,
+        });
+
+        if (peerConnectionRef.current) {
+          const sender = peerConnectionRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "video");
+          if (sender) {
+            await sender.replaceTrack(screenTrack);
+          }
+        }
+
+        // Preview the screen share locally instead of face camera
+        if (localVideoRef.current) {
+          const previewStream = new MediaStream([screenTrack]);
+          localVideoRef.current.srcObject = previewStream;
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling screen share", err);
+    }
+  }, [isScreenSharing]);
+
   return {
     callState,
     localVideoRef,
     remoteVideoRef,
     isCameraOn,
     isMicOn,
+    isScreenSharing,
+    isRemoteScreenSharing,
     initiateCallOffer,
     endCall,
     toggleCamera,
     toggleMic,
     switchCamera,
+    toggleScreenShare,
     availableCameras,
     initLocalStream,
   };
