@@ -15,6 +15,11 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
+  const [permissions, setPermissions] = useState({
+    allowMic: true,
+    allowCamera: true,
+    allowScreenShare: true,
+  });
   const screenTrackRef = useRef<MediaStreamTrack | null>(null);
 
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>(
@@ -243,6 +248,64 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     };
   }, [socket, roomId, initLocalStream, createPeerConnection]);
 
+  // Handle Room Permissions
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("room-permissions-sync", ({ permissions }) => {
+      setPermissions(permissions);
+    });
+
+    socket.on("room-permissions-updated", ({ permissions: newPermissions }) => {
+      setPermissions(newPermissions);
+
+      // If permissions are revoked, force disable local tracks
+      if (localStreamRef.current) {
+        if (!newPermissions.allowMic && isMicOn) {
+          const audioTrack = localStreamRef.current.getAudioTracks()[0];
+          if (audioTrack) {
+            audioTrack.enabled = false;
+            setIsMicOn(false);
+          }
+        }
+        if (!newPermissions.allowCamera && isCameraOn) {
+          const videoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (videoTrack) {
+            videoTrack.enabled = false;
+            setIsCameraOn(false);
+          }
+        }
+      }
+
+      if (!newPermissions.allowScreenShare && isScreenSharing) {
+        // Stop screen share if it was active
+        if (screenTrackRef.current) {
+          screenTrackRef.current.stop();
+          screenTrackRef.current = null;
+        }
+        setIsScreenSharing(false);
+        socket.emit("guest-screen-share-status", {
+          roomId,
+          isScreenSharing: false,
+        });
+
+        // Revert to camera
+        const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (videoTrack && peerConnectionRef.current) {
+          const sender = peerConnectionRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "video");
+          if (sender) sender.replaceTrack(videoTrack).catch(console.error);
+        }
+      }
+    });
+
+    return () => {
+      socket.off("room-permissions-sync");
+      socket.off("room-permissions-updated");
+    };
+  }, [socket, roomId, isMicOn, isCameraOn, isScreenSharing]);
+
   // Host Action Listener
   useEffect(() => {
     if (!socket) return;
@@ -306,6 +369,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   }, [remoteStream, remoteVideoRef]);
 
   const toggleCamera = useCallback(() => {
+    if (!permissions.allowCamera && !isCameraOn) return; // Can't enable if not allowed
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
@@ -313,9 +377,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         setIsCameraOn(videoTrack.enabled);
       }
     }
-  }, []);
+  }, [permissions.allowCamera, isCameraOn]);
 
   const toggleMic = useCallback(() => {
+    if (!permissions.allowMic && !isMicOn) return; // Can't enable if not allowed
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
@@ -323,7 +388,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         setIsMicOn(audioTrack.enabled);
       }
     }
-  }, []);
+  }, [permissions.allowMic, isMicOn]);
 
   const switchCamera = useCallback(async () => {
     if (availableCameras.length < 2 || !localStreamRef.current) return;
@@ -374,6 +439,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   }, [availableCameras, currentCameraId, isCameraOn]);
 
   const toggleScreenShare = useCallback(async () => {
+    if (!permissions.allowScreenShare && !isScreenSharing) return; // Can't start if not allowed
     try {
       if (isScreenSharing) {
         // Stop screen share
@@ -476,5 +542,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     toggleScreenShare,
     availableCameras,
     initLocalStream,
+    permissions,
+    setPermissions,
   };
 }

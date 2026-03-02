@@ -111,6 +111,8 @@ export default function GuestVideoRoom() {
     initLocalStream,
     isScreenSharing,
     isRemoteScreenSharing,
+    permissions,
+    setPermissions,
   } = webrtc;
 
   // Initial Join Logic
@@ -250,6 +252,14 @@ export default function GuestVideoRoom() {
     setCopiedLink(true);
     toast("Link copied to clipboard!", { icon: "🔗" });
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const updateRoomPermissions = (newPermissions: typeof permissions) => {
+    if (!socket || !isCreator) return;
+    socket.emit("update-room-permissions", {
+      roomId,
+      permissions: newPermissions,
+    });
   };
 
   const handleDisconnect = () => {
@@ -596,7 +606,15 @@ export default function GuestVideoRoom() {
         <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-auto max-w-[calc(100vw-2rem)] flex sm:inline-flex items-center gap-2 sm:gap-3 bg-zinc-950/85 backdrop-blur-2xl px-4 sm:px-6 py-3 sm:py-4 rounded-[2.5rem] sm:rounded-full border border-zinc-800/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-20 overflow-x-auto no-scrollbar pointer-events-auto shrink-0 min-w-0 justify-start sm:justify-center">
           <button
             onClick={toggleMic}
-            className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isMicOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
+            disabled={!isCreator && !permissions.allowMic && !isMicOn}
+            className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isMicOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"} ${!isCreator && !permissions.allowMic && !isMicOn ? "opacity-30 cursor-not-allowed" : ""}`}
+            title={
+              !isCreator && !permissions.allowMic && !isMicOn
+                ? "Ask host to unmute"
+                : isMicOn
+                  ? "Mute"
+                  : "Unmute"
+            }
           >
             {isMicOn ? (
               <Mic className="w-5 h-5" />
@@ -606,7 +624,15 @@ export default function GuestVideoRoom() {
           </button>
           <button
             onClick={toggleCamera}
-            className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isCameraOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
+            disabled={!isCreator && !permissions.allowCamera && !isCameraOn}
+            className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isCameraOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"} ${!isCreator && !permissions.allowCamera && !isCameraOn ? "opacity-30 cursor-not-allowed" : ""}`}
+            title={
+              !isCreator && !permissions.allowCamera && !isCameraOn
+                ? "Ask host to start video"
+                : isCameraOn
+                  ? "Stop Video"
+                  : "Start Video"
+            }
           >
             {isCameraOn ? (
               <Video className="w-5 h-5" />
@@ -617,8 +643,17 @@ export default function GuestVideoRoom() {
 
           <button
             onClick={toggleScreenShare}
-            className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${!isScreenSharing ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"}`}
-            title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
+            disabled={
+              !isCreator && !permissions.allowScreenShare && !isScreenSharing
+            }
+            className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${!isScreenSharing ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"} ${!isCreator && !permissions.allowScreenShare && !isScreenSharing ? "opacity-30 cursor-not-allowed" : ""}`}
+            title={
+              !isCreator && !permissions.allowScreenShare && !isScreenSharing
+                ? "Sharing disabled by host"
+                : isScreenSharing
+                  ? "Stop Sharing Screen"
+                  : "Share Screen"
+            }
           >
             {isScreenSharing ? (
               <MonitorOff className="w-5 h-5" />
@@ -750,6 +785,86 @@ export default function GuestVideoRoom() {
                 </div>
               </div>
             </button>
+
+            <div className="h-px bg-zinc-800 my-2"></div>
+
+            <div className="space-y-4 pt-2">
+              <h4 className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest pl-1">
+                Global Guest Permissions
+              </h4>
+
+              <div className="flex items-center justify-between p-3 bg-zinc-800/20 rounded-xl border border-zinc-800/50">
+                <div className="flex items-center gap-3">
+                  <Mic
+                    className={`w-4 h-4 ${permissions.allowMic ? "text-indigo-400" : "text-zinc-600"}`}
+                  />
+                  <span className="text-sm font-medium text-zinc-200">
+                    Allow Partner to Unmute
+                  </span>
+                </div>
+                <button
+                  onClick={() =>
+                    updateRoomPermissions({
+                      ...permissions,
+                      allowMic: !permissions.allowMic,
+                    })
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${permissions.allowMic ? "bg-indigo-600" : "bg-zinc-700"}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${permissions.allowMic ? "translate-x-6" : "translate-x-1"}`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-zinc-800/20 rounded-xl border border-zinc-800/50">
+                <div className="flex items-center gap-3">
+                  <Video
+                    className={`w-4 h-4 ${permissions.allowCamera ? "text-indigo-400" : "text-zinc-600"}`}
+                  />
+                  <span className="text-sm font-medium text-zinc-200">
+                    Allow Partner Video
+                  </span>
+                </div>
+                <button
+                  onClick={() =>
+                    updateRoomPermissions({
+                      ...permissions,
+                      allowCamera: !permissions.allowCamera,
+                    })
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${permissions.allowCamera ? "bg-indigo-600" : "bg-zinc-700"}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${permissions.allowCamera ? "translate-x-6" : "translate-x-1"}`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-zinc-800/20 rounded-xl border border-zinc-800/50">
+                <div className="flex items-center gap-3">
+                  <MonitorUp
+                    className={`w-4 h-4 ${permissions.allowScreenShare ? "text-indigo-400" : "text-zinc-600"}`}
+                  />
+                  <span className="text-sm font-medium text-zinc-200">
+                    Allow Screen Sharing
+                  </span>
+                </div>
+                <button
+                  onClick={() =>
+                    updateRoomPermissions({
+                      ...permissions,
+                      allowScreenShare: !permissions.allowScreenShare,
+                    })
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${permissions.allowScreenShare ? "bg-indigo-600" : "bg-zinc-700"}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${permissions.allowScreenShare ? "translate-x-6" : "translate-x-1"}`}
+                  />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
