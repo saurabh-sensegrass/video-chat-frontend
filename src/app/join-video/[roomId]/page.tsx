@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   ZoomIn,
   ZoomOut,
+  UserX,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -113,6 +114,8 @@ export default function GuestVideoRoom() {
     permissions,
     setPermissions,
     isCreator,
+    isRemoteMicOn,
+    isRemoteCameraOn,
   } = webrtc;
 
   // Initial Join Logic
@@ -131,6 +134,20 @@ export default function GuestVideoRoom() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Handle being kicked out
+  useEffect(() => {
+    const handleKicked = () => {
+      toast("You have been removed from the room by the host.", {
+        icon: "🚫",
+        duration: 5000,
+      });
+      router.push("/join-video");
+    };
+
+    window.addEventListener("guest-kicked-out", handleKicked);
+    return () => window.removeEventListener("guest-kicked-out", handleKicked);
+  }, [router]);
 
   // Robust Socket Listeners
   useEffect(() => {
@@ -378,7 +395,24 @@ export default function GuestVideoRoom() {
       <div className="flex-1 flex flex-col h-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-zinc-900 border border-zinc-800">
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.05] mix-blend-overlay pointer-events-none z-10"></div>
         {/* Top Overlay Actions */}
-        <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-start pointer-events-none">
+        {/* Remote Video Overlay Status */}
+        <div className="absolute top-4 left-4 z-40 flex items-center gap-2 pointer-events-none">
+          <div className="px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${callState === "connected" ? "bg-green-500 animate-pulse" : "bg-zinc-500"}`}
+            ></div>
+            <span className="text-xs font-medium text-white">
+              {remoteUserName || "Guest"}
+            </span>
+            {!isRemoteMicOn && (
+              <div className="flex items-center justify-center p-1 bg-red-500/20 rounded-md border border-red-500/30 ml-1">
+                <MicOff className="w-3 h-3 text-red-500" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 pointer-events-none">
           <div
             ref={roomDetailsRef}
             className={`flex flex-col gap-2 pointer-events-auto ${showRoomDetails ? "w-full max-w-sm sm:max-w-md" : ""}`}
@@ -860,6 +894,33 @@ export default function GuestVideoRoom() {
                   />
                 </button>
               </div>
+            </div>
+
+            <div className="h-px bg-zinc-800 my-2"></div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  if (
+                    confirm(
+                      "Are you sure you want to kick the guest out of this room?",
+                    )
+                  ) {
+                    socket?.emit("kick-user", { roomId });
+                  }
+                }}
+                className="w-full flex items-center gap-3 p-3 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors border border-red-500/20 text-red-400 group"
+              >
+                <div className="p-2 bg-red-500/20 rounded-lg group-hover:bg-red-500/30 transition-colors">
+                  <UserX className="w-4 h-4 text-red-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-semibold text-sm">Kick Partner</div>
+                  <div className="text-[10px] text-red-400/60 mt-0.5">
+                    Remove them from this room
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         </div>

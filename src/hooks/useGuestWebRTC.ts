@@ -15,6 +15,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
+  const [isRemoteMicOn, setIsRemoteMicOn] = useState(true);
+  const [isRemoteCameraOn, setIsRemoteCameraOn] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
   const [permissions, setPermissions] = useState({
     allowMic: true,
@@ -305,12 +307,45 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       }
     });
 
+    socket.on("media-status-update", ({ isMicOn, isCameraOn }) => {
+      setIsRemoteMicOn(isMicOn);
+      setIsRemoteCameraOn(isCameraOn);
+    });
+
+    socket.on("kicked-out", () => {
+      // Logic will be handled in page.tsx via a callback or just end call here
+      endCall();
+      // We'll use a custom event or state to notify page.tsx for the redirect
+      window.dispatchEvent(new CustomEvent("guest-kicked-out"));
+    });
+
     return () => {
       socket.off("room-creator");
       socket.off("room-permissions-sync");
       socket.off("room-permissions-updated");
+      socket.off("media-status-update");
+      socket.off("kicked-out");
     };
-  }, [socket, roomId, isMicOn, isCameraOn, isScreenSharing, isCreator]);
+  }, [
+    socket,
+    roomId,
+    isMicOn,
+    isCameraOn,
+    isScreenSharing,
+    isCreator,
+    endCall,
+  ]);
+
+  // Sync local status to remote peer
+  useEffect(() => {
+    if (socket && callState === "connected") {
+      socket.emit("media-status-update", {
+        roomId,
+        isMicOn,
+        isCameraOn,
+      });
+    }
+  }, [socket, roomId, isMicOn, isCameraOn, callState]);
 
   // Host Action Listener
   useEffect(() => {
@@ -555,5 +590,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     permissions,
     setPermissions,
     isCreator,
+    isRemoteMicOn,
+    isRemoteCameraOn,
   };
 }
