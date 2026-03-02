@@ -49,7 +49,6 @@ export default function GuestVideoRoom() {
   const [isRoomFull, setIsRoomFull] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [remoteUserName, setRemoteUserName] = useState<string | null>(null);
-  const [isCreator, setIsCreator] = useState(false);
 
   const [messages, setMessages] = useState<GuestMessage[]>([]);
   const [inputMsg, setInputMsg] = useState("");
@@ -113,6 +112,7 @@ export default function GuestVideoRoom() {
     isRemoteScreenSharing,
     permissions,
     setPermissions,
+    isCreator,
   } = webrtc;
 
   // Initial Join Logic
@@ -140,10 +140,6 @@ export default function GuestVideoRoom() {
     socket.on("room-full", () => {
       setIsRoomFull(true);
       setIsJoined(false);
-    });
-
-    socket.on("room-creator", () => {
-      setIsCreator(true);
     });
 
     socket.on("host-disconnected", () => {
