@@ -205,6 +205,7 @@ export default function GuestVideoRoom() {
         icon: "👋",
       });
       setRemoteUserName(null);
+      setRemoteVideoZoom(1);
     });
 
     socket.on(
@@ -602,7 +603,7 @@ export default function GuestVideoRoom() {
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className={`w-full h-full transition-all ${isScreenSharing ? "object-contain bg-zinc-900/50" : "object-cover"}`}
             style={{ transform: isScreenSharing ? "none" : "scaleX(-1)" }}
           />
           {!isCameraOn && (
@@ -896,32 +897,36 @@ export default function GuestVideoRoom() {
               </div>
             </div>
 
-            <div className="h-px bg-zinc-800 my-2"></div>
+            {remoteUserName && (
+              <>
+                <div className="h-px bg-zinc-800 my-2"></div>
 
-            <div className="pt-2">
-              <button
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Are you sure you want to kick the guest out of this room?",
-                    )
-                  ) {
-                    socket?.emit("kick-user", { roomId });
-                  }
-                }}
-                className="w-full flex items-center gap-3 p-3 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors border border-red-500/20 text-red-400 group"
-              >
-                <div className="p-2 bg-red-500/20 rounded-lg group-hover:bg-red-500/30 transition-colors">
-                  <UserX className="w-4 h-4 text-red-500" />
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      if (
+                        confirm(
+                          "Are you sure you want to kick the guest out of this room?",
+                        )
+                      ) {
+                        socket?.emit("kick-user", { roomId });
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 p-3 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors border border-red-500/20 text-red-400 group"
+                  >
+                    <div className="p-2 bg-red-500/20 rounded-lg group-hover:bg-red-500/30 transition-colors">
+                      <UserX className="w-4 h-4 text-red-500" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold text-sm">Kick Partner</div>
+                      <div className="text-[10px] text-red-400/60 mt-0.5">
+                        Remove them from this room
+                      </div>
+                    </div>
+                  </button>
                 </div>
-                <div className="flex-1 text-left">
-                  <div className="font-semibold text-sm">Kick Partner</div>
-                  <div className="text-[10px] text-red-400/60 mt-0.5">
-                    Remove them from this room
-                  </div>
-                </div>
-              </button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}

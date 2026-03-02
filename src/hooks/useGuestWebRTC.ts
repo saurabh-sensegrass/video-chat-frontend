@@ -228,6 +228,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         }
         setRemoteStream(null);
         setCallState("idle");
+        setIsRemoteMicOn(true);
+        setIsRemoteCameraOn(true);
       }
     });
 
@@ -239,6 +241,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         }
         setRemoteStream(null);
         setCallState("idle");
+        setIsRemoteMicOn(true);
+        setIsRemoteCameraOn(true);
       }
     });
 
