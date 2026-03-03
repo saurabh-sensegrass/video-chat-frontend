@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.className} bg-gray-50 text-gray-900 antialiased min-h-screen overscroll-none`}
+        className={`${inter.className} bg-zinc-950 text-zinc-100 antialiased min-h-[100dvh] overscroll-none`}
       >
         <AuthProvider>
           <SocketProvider>

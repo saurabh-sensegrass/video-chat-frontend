@@ -317,7 +317,7 @@ export default function GuestVideoRoom() {
 
   if (!isJoined && !isRoomFull) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-950 px-4">
+      <div className="min-h-[100dvh] py-8 flex items-center justify-center bg-zinc-950 px-4">
         <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -369,7 +369,7 @@ export default function GuestVideoRoom() {
   // ROOM FULL SCREEN
   if (isRoomFull) {
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-zinc-950 px-4 text-center">
+      <div className="min-h-[100dvh] py-8 flex flex-col items-center justify-center bg-zinc-950 px-4 text-center">
         <div className="w-20 h-20 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6">
           <Users className="w-10 h-10" />
         </div>

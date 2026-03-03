@@ -222,58 +222,62 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500">
+      <div className="min-h-[100dvh] bg-zinc-950 flex items-center justify-center text-zinc-500">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="min-h-[100dvh] bg-zinc-950 text-zinc-100 flex flex-col">
       {/* Hero */}
       <header className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-600/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
-        <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
-              <Video className="w-5 h-5 text-white" />
+        <nav className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
+              <Video className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">VideoChat</span>
+            <span className="text-lg sm:text-xl font-bold tracking-tight">
+              VideoChat
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isLoggedIn ? (
               <>
                 <Link
                   href="/chat"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+                  className="px-3 py-2 sm:px-5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl transition-colors shadow-lg shadow-indigo-600/20 flex items-center gap-1.5 sm:gap-2"
                 >
-                  <MessageSquare className="w-4 h-4" />
-                  Open Chat
+                  <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="hidden sm:inline">Open Chat</span>
+                  <span className="inline sm:hidden">Chat</span>
                 </Link>
                 <button
                   onClick={() => logout()}
-                  className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-red-400 transition-colors flex items-center gap-1.5"
+                  className="px-2 py-2 sm:px-4 text-xs sm:text-sm font-medium text-zinc-400 hover:text-red-400 transition-colors flex items-center gap-1.5"
                 >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
+                  <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="hidden sm:inline">Sign Out</span>
                 </button>
               </>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                  className="px-2 py-2 sm:px-4 text-xs sm:text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/join-video"
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/20"
+                  className="px-3 py-2 sm:px-5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-sm font-semibold rounded-lg sm:rounded-xl transition-colors shadow-lg shadow-indigo-600/20 whitespace-nowrap"
                 >
-                  Guest Video Room
+                  <span className="hidden sm:inline">Guest Video Room</span>
+                  <span className="inline sm:hidden">Guest Room</span>
                 </Link>
               </>
             )}
