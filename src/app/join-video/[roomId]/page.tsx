@@ -116,6 +116,7 @@ export default function GuestVideoRoom() {
     isCreator,
     isRemoteMicOn,
     isRemoteCameraOn,
+    isFrontCamera,
   } = webrtc;
 
   // Initial Join Logic
@@ -604,7 +605,13 @@ export default function GuestVideoRoom() {
             playsInline
             muted
             className={`w-full h-full transition-all ${isScreenSharing ? "object-contain bg-zinc-900/50" : "object-cover"}`}
-            style={{ transform: isScreenSharing ? "none" : "scaleX(-1)" }}
+            style={{
+              transform: isScreenSharing
+                ? "none"
+                : isFrontCamera
+                  ? "scaleX(-1)"
+                  : "none",
+            }}
           />
           {!isCameraOn && (
             <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">

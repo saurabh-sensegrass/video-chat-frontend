@@ -1,11 +1,14 @@
 {
   "name": "Video Chat App",
   "short_name": "VideoChat",
-  "description": "Private 1-to-1 video chat application",
+  "description": "Private 1-to-1 video chat application with WebRTC, screen sharing, and host controls.",
+  "version": "2.0.0",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#09090b",
   "theme_color": "#6366f1",
+  "orientation": "any",
+  "categories": ["communication", "social"],
   "icons": [
     {
       "src": "/favicon.ico",
@@ -15,12 +18,14 @@
     {
       "src": "/icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/apple-icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

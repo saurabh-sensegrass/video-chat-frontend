@@ -11,6 +11,8 @@ import {
   UserPlus,
   Power,
   Shield,
+  Home,
+  LogOut,
 } from "lucide-react";
 
 type UserProfile = {
@@ -222,15 +224,31 @@ export default function AdminPage() {
             </div>
             <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
           </div>
-          <button
-            onClick={() => {
-              logout();
-              router.push("/login");
-            }}
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-sm font-medium"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/")}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </button>
+            <button
+              onClick={() => router.push("/chat")}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-sm font-medium"
+            >
+              Chat
+            </button>
+            <button
+              onClick={() => {
+                logout();
+                router.push("/login");
+              }}
+              className="px-4 py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-900/50 rounded-lg transition-colors text-sm font-medium text-red-300 flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {error && (

@@ -159,6 +159,22 @@ export default function LoginPage() {
             {loading ? "Authenticating..." : "Sign In"}
           </button>
         </form>
+
+        <div className="mt-6 pt-6 border-t border-zinc-800 space-y-3">
+          <a
+            href="/join-video"
+            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 transition-colors"
+          >
+            <Video className="w-4 h-4" />
+            Create Guest Video Room
+          </a>
+          <a
+            href="/"
+            className="w-full flex items-center justify-center gap-2 py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            ← Back to Home
+          </a>
+        </div>
       </div>
     </div>
   );

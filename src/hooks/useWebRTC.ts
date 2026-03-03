@@ -19,6 +19,7 @@ export function useWebRTC(
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   // STUN ONLY
   const getRTCConfiguration = (): RTCConfiguration => ({
@@ -40,7 +41,8 @@ export function useWebRTC(
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    stopMediaTracks(localStream);
+    stopMediaTracks(localStreamRef.current);
+    localStreamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     setCallState("idle");
@@ -48,7 +50,7 @@ export function useWebRTC(
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-  }, [socket, remoteUserId, callState, localStream, stopMediaTracks]);
+  }, [socket, remoteUserId, callState, stopMediaTracks]);
 
   const initLocalStream = async () => {
     try {
@@ -56,6 +58,7 @@ export function useWebRTC(
         video: true,
         audio: true,
       });
+      localStreamRef.current = stream;
       setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
@@ -289,11 +292,14 @@ export function useWebRTC(
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
         }
-        stopMediaTracks(localStream);
+        stopMediaTracks(localStreamRef.current);
+        localStreamRef.current = null;
         setLocalStream(null);
         setRemoteStream(null);
         setCallState("idle");
         setRemoteUserId(null);
+        if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       }
     });
 
@@ -312,7 +318,6 @@ export function useWebRTC(
     callState,
     currentUserId,
     remoteUserId,
-    localStream,
     stopMediaTracks,
     endCall,
   ]);

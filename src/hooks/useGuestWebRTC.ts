@@ -29,6 +29,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     [],
   );
   const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -102,6 +103,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         } else if (videoDevices.length > 0) {
           setCurrentCameraId(videoDevices[0].deviceId);
         }
+
+        // Detect facing mode: 'user' = front, 'environment' = back
+        const facingMode = currentTrack.getSettings()?.facingMode;
+        setIsFrontCamera(facingMode !== "environment");
       }
 
       localStreamRef.current = stream;
@@ -469,9 +474,12 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
       localStreamRef.current.addTrack(newVideoTrack);
 
-      // Update React State carefully
       setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
       setCurrentCameraId(nextCameraId);
+
+      // Update facing mode from the new track
+      const newFacingMode = newVideoTrack.getSettings()?.facingMode;
+      setIsFrontCamera(newFacingMode !== "environment");
 
       // Replace in peer connection
       if (peerConnectionRef.current) {
@@ -596,5 +604,6 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     isCreator,
     isRemoteMicOn,
     isRemoteCameraOn,
+    isFrontCamera,
   };
 }

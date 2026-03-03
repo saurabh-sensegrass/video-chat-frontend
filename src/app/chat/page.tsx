@@ -29,6 +29,9 @@ import {
   CheckCheck,
   Smile,
   MessageSquare,
+  LogOut,
+  Home,
+  Shield,
 } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
@@ -377,6 +380,7 @@ export default function ChatPage() {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [saveHistory, setSaveHistory] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -820,16 +824,6 @@ export default function ChatPage() {
         {/* Chat Header */}
         <header className="h-[72px] lg:h-20 shrink-0 border-b border-zinc-800/80 flex items-center justify-between px-4 lg:px-10 bg-zinc-950/50 backdrop-blur-md z-10 w-full">
           <div className="flex items-center gap-3 sm:gap-4 shrink-0 overflow-hidden">
-            {profile?.role === "admin" && (
-              <button
-                onClick={() => router.push("/admin")}
-                className="p-1.5 sm:p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors mr-1 sm:mr-2 hidden lg:block"
-              >
-                Admin Panel
-              </button>
-            )}
-            <div className="hidden lg:block w-px h-6 bg-zinc-800 mr-1 sm:mr-2 shrink-0"></div>
-
             {/* Header Avatar */}
             {targetUser && (
               <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-zinc-800 border border-zinc-700 font-semibold text-zinc-300 flex items-center justify-center shrink-0 shadow-md text-sm sm:text-base">
@@ -863,15 +857,61 @@ export default function ChatPage() {
               <Video className="w-4 h-4 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Start Video Call</span>
             </button>
-            <button
-              onClick={() => {
-                logout();
-                router.push("/login");
-              }}
-              className="p-2 sm:p-2.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors flex items-center justify-center shrink-0"
-            >
-              <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+
+            {/* User Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu((prev) => !prev)}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-sm flex items-center justify-center hover:bg-indigo-600/30 transition-colors border border-indigo-500/20 shrink-0"
+                title="User Menu"
+              >
+                {profile?.email?.charAt(0).toUpperCase() || "U"}
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-12 w-52 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b border-zinc-800">
+                    <p className="text-xs text-zinc-500 truncate">
+                      {profile?.email}
+                    </p>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        router.push("/");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                    >
+                      <Home className="w-4 h-4 text-zinc-500" />
+                      Home
+                    </button>
+                    {profile?.role === "admin" && (
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          router.push("/admin");
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        <Shield className="w-4 h-4 text-zinc-500" />
+                        Admin Panel
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        logout();
+                        router.push("/login");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-zinc-800 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
