@@ -62,7 +62,7 @@ export const useAuth = () => {
         );
       }
 
-      signOut({ callbackUrl: "/login" });
+      await signOut({ callbackUrl: "/login" });
     },
     // login function removed: NextAuth handles sign in via signIn()
   };

@@ -16,35 +16,42 @@ export default function JoinVideoPage() {
 
   // Cleanup old host keys from localStorage on mount
   useEffect(() => {
-    if (typeof window === "undefined") return;
     try {
       const keys = Object.keys(localStorage);
       const hostKeys = keys.filter((k) => k.startsWith("guest_host_"));
 
-      if (hostKeys.length > 10) {
-        if (hostKeys.length > 50) {
-          hostKeys.forEach((k) => localStorage.removeItem(k));
-        }
+      // If we have more than 50 keys, clear all of them
+      // (Simplified strategy A: threshold clear)
+      if (hostKeys.length > 50) {
+        hostKeys.forEach((k) => localStorage.removeItem(k));
       }
     } catch (e) {
       console.error("LocalStorage cleanup failed", e);
     }
   }, []);
 
-  const createRoom = () => {
+  const createRoom = async () => {
     setIsCreating(true);
-    // Generate a simple room ID
-    const roomId =
-      crypto.randomUUID().split("-")[0] +
-      "-" +
-      crypto.randomUUID().split("-")[1];
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/video/create-room`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+      const { roomId, hostToken } = await res.json();
 
-    // Store host flag in localStorage so we know this user created the room
-    if (typeof window !== "undefined") {
-      localStorage.setItem(`guest_host_${roomId}`, "true");
+      // Store host token temporarily in sessionStorage for the redirect
+      // This is still client-side, but it's not "trusted" by the server
+      // without being sent back for verification.
+      sessionStorage.setItem(`host_token_${roomId}`, hostToken);
+
+      router.push(`/join-video/${roomId}`);
+    } catch (err) {
+      console.error("Failed to create room:", err);
+      setIsCreating(false);
     }
-
-    router.push(`/join-video/${roomId}`);
   };
 
   return (

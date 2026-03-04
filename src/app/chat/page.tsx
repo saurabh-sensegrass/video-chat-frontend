@@ -495,6 +495,7 @@ export default function ChatPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSidebarUserMenu, setShowSidebarUserMenu] = useState(false);
 
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -961,13 +962,48 @@ export default function ChatPage() {
           <h2 className="text-lg font-bold text-zinc-100 tracking-tight">
             Messages
           </h2>
-          <div className="lg:hidden">
+          <div className="lg:hidden relative">
             <button
-              onClick={() => setShowUserMenu((prev) => !prev)}
-              className="w-9 h-9 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-sm flex items-center justify-center border border-indigo-500/20"
+              onClick={() => {
+                setShowSidebarUserMenu((prev) => !prev);
+                if (showUserMenu) setShowUserMenu(false);
+              }}
+              className="w-9 h-9 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-sm flex items-center justify-center border border-indigo-500/20 active:scale-95 transition-transform"
             >
               {profile?.email?.charAt(0).toUpperCase() || "U"}
             </button>
+            {showSidebarUserMenu && (
+              <div className="absolute right-0 top-12 w-52 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                <div className="px-4 py-3 border-b border-zinc-800">
+                  <p className="text-xs text-zinc-500 truncate">
+                    {profile?.email}
+                  </p>
+                </div>
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setShowSidebarUserMenu(false);
+                      router.push("/");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                  >
+                    <Home className="w-4 h-4 text-zinc-500" />
+                    Home
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowSidebarUserMenu(false);
+                      logout();
+                      router.push("/login");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-zinc-800 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="p-2 lg:p-3 flex flex-col gap-1">
@@ -1069,7 +1105,10 @@ export default function ChatPage() {
             {/* User Menu */}
             <div className="relative">
               <button
-                onClick={() => setShowUserMenu((prev) => !prev)}
+                onClick={() => {
+                  setShowUserMenu((prev) => !prev);
+                  if (showSidebarUserMenu) setShowSidebarUserMenu(false);
+                }}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-sm flex items-center justify-center hover:bg-indigo-600/30 transition-colors border border-indigo-500/20 shrink-0"
                 title="User Menu"
               >
