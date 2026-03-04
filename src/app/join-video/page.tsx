@@ -54,13 +54,13 @@ export default function JoinVideoPage() {
             the link and connect face-to-face in seconds.
           </p>
 
-          <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/80 p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+          <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/80 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-2xl relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
             <button
               onClick={createRoom}
               disabled={isCreating}
-              className="relative z-10 w-full group flex items-center justify-center gap-3 px-8 py-5 sm:py-6 bg-zinc-100 hover:bg-white disabled:bg-zinc-300 disabled:cursor-not-allowed text-zinc-900 font-bold text-lg rounded-2xl transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:-translate-y-1"
+              className="relative z-10 w-full group flex items-center justify-center gap-2 sm:gap-3 px-5 sm:px-8 py-4 sm:py-6 bg-zinc-100 hover:bg-white disabled:bg-zinc-300 disabled:cursor-not-allowed text-zinc-900 font-bold text-base sm:text-lg rounded-xl sm:rounded-2xl transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:-translate-y-1"
             >
               <Video className="w-6 h-6" />
               <span>{isCreating ? "Creating Room..." : "Create New Room"}</span>

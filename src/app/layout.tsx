@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketContext";
 import { Toaster } from "react-hot-toast";
+import AppShell from "@/components/AppShell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,7 +31,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SocketProvider>
-            {children}
+            <AppShell>{children}</AppShell>
             <Toaster position="top-right" />
           </SocketProvider>
         </AuthProvider>

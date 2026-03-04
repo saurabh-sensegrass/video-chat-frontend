@@ -36,6 +36,7 @@ import {
 import type { Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import { sendAppNotification } from "@/lib/notifications";
 
 type Message = {
   id: string;
@@ -560,16 +561,7 @@ export default function ChatPage() {
       messageSoundRef.current?.play().catch(console.error);
       setMessages((prev) => [...prev, decryptedMsg]);
       toast("New message received", { icon: "✉️" });
-      if (
-        document.hidden &&
-        "Notification" in window &&
-        Notification.permission === "granted"
-      ) {
-        new Notification("New Message", {
-          body: decryptedMsg.message,
-          silent: true,
-        });
-      }
+      sendAppNotification("New Message", decryptedMsg.message);
 
       // If document is visible, immediately emit read receipt back
       if (!document.hidden && user?.id === decryptedMsg.receiver_id) {
@@ -598,17 +590,7 @@ export default function ChatPage() {
       messageSoundRef.current?.play().catch(console.error);
       setMessages((prev) => [...prev, msg]);
       toast(`In-Call Message: ${data.content}`, { icon: "💬" });
-
-      if (
-        document.hidden &&
-        "Notification" in window &&
-        Notification.permission === "granted"
-      ) {
-        new Notification("New In-Call Message", {
-          body: data.content,
-          silent: true,
-        });
-      }
+      sendAppNotification("New In-Call Message", data.content);
     };
 
     const handleOnlineUsers = (users: string[]) => {
@@ -617,16 +599,7 @@ export default function ChatPage() {
 
     const handleIncomingCall = ({ callerId }: { callerId: string }) => {
       toast("Incoming Video Call...", { icon: "📞", duration: 5000 });
-      if (
-        document.hidden &&
-        "Notification" in window &&
-        Notification.permission === "granted"
-      ) {
-        new Notification("Incoming Video Call", {
-          body: "Someone is calling you",
-          silent: true,
-        });
-      }
+      sendAppNotification("Incoming Video Call", "Someone is calling you");
     };
 
     const handleUserTyping = ({ senderId }: { senderId: string }) => {

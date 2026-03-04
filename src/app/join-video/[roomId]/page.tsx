@@ -26,7 +26,16 @@ import {
   ZoomIn,
   ZoomOut,
   UserX,
+  RefreshCw,
+  Monitor,
+  ScreenShare,
+  ScreenShareOff,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
 } from "lucide-react";
+import { sendAppNotification } from "@/lib/notifications";
 import { toast } from "react-hot-toast";
 
 type GuestMessage = {
@@ -165,6 +174,10 @@ export default function GuestVideoRoom() {
         icon: "⚠️",
         duration: 5000,
       });
+      sendAppNotification(
+        "Host Disconnected",
+        "The room host has left. The call is ending.",
+      );
       setTimeout(() => {
         endCall();
         router.push("/join-video");
@@ -182,6 +195,10 @@ export default function GuestVideoRoom() {
       }) => {
         setRemoteUserName(connectedName);
         toast(`${connectedName} joined the room!`, { icon: "👋" });
+        sendAppNotification(
+          "User Joined",
+          `${connectedName} joined the video room.`,
+        );
       },
     );
 
@@ -205,6 +222,10 @@ export default function GuestVideoRoom() {
       toast(`${remoteUserNameRef.current || "User"} left the room`, {
         icon: "👋",
       });
+      sendAppNotification(
+        "User Left",
+        `${remoteUserNameRef.current || "User"} left the room.`,
+      );
       setRemoteUserName(null);
       setRemoteVideoZoom(1);
     });
@@ -230,6 +251,10 @@ export default function GuestVideoRoom() {
         if (!showChatRef.current) {
           toast(`New message from ${data.senderName}`, { icon: "💬" });
         }
+        sendAppNotification(
+          "New Message",
+          `${data.senderName}: ${data.content}`,
+        );
       },
     );
 
