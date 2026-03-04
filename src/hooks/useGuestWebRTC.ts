@@ -21,11 +21,12 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   // Check localStorage to see if this user created the room
   const [isCreator, setIsCreator] = useState(false);
 
-  // Initialize and sync isCreator based on roomId and localStorage
+  // Initialize and sync isCreator based on roomId and presence of host token
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(`guest_host_${roomId}`) === "true";
-      setIsCreator(stored);
+      const hasHostToken = !!sessionStorage.getItem(`host_token_${roomId}`);
+      setIsCreator(stored || hasHostToken);
     }
   }, [roomId]);
   const [permissions, setPermissions] = useState({
@@ -260,52 +261,32 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
     socket.on("webrtc-call-ended", ({ senderId }) => {
       if (senderId !== socket.id) {
-        if (screenTrackRef.current) {
-          screenTrackRef.current.stop();
-          screenTrackRef.current = null;
-        }
+        // Clean up connection with peer, but KEEP LOCAL MEDIA
         if (peerConnectionRef.current) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
         }
-        stopMediaTracks(localStreamRef.current);
-        setLocalStream(null);
-        localStreamRef.current = null;
         setRemoteStream(null);
         setCallState("idle");
-        setIsScreenSharing(false);
         setIsRemoteScreenSharing(false);
-        setIsCameraOn(true);
-        setIsMicOn(true);
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
-        if (localVideoRef.current) localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       }
     });
 
     socket.on("user-left", ({ userId }) => {
       if (userId !== socket.id) {
-        if (screenTrackRef.current) {
-          screenTrackRef.current.stop();
-          screenTrackRef.current = null;
-        }
+        // Clean up connection with peer, but KEEP LOCAL MEDIA
         if (peerConnectionRef.current) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
         }
-        stopMediaTracks(localStreamRef.current);
-        setLocalStream(null);
-        localStreamRef.current = null;
         setRemoteStream(null);
         setCallState("idle");
-        setIsScreenSharing(false);
         setIsRemoteScreenSharing(false);
-        setIsCameraOn(true);
-        setIsMicOn(true);
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
-        if (localVideoRef.current) localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       }
     });

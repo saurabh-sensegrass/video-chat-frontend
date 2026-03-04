@@ -137,8 +137,15 @@ export function useWebRTC(
         localVideoRef.current.srcObject = stream;
       }
       return stream;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error accessing media devices:", err);
+      if (err.name === "NotAllowedError") {
+        toast.error("Camera/Microphone permission denied.");
+      } else if (err.name === "NotFoundError") {
+        toast.error("No camera or microphone found.");
+      } else {
+        toast.error("Failed to access camera/microphone.");
+      }
       return null;
     }
   };
