@@ -33,11 +33,14 @@ export default function ChatPage() {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [saveHistory, setSaveHistory] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [unreadUserIds, setUnreadUserIds] = useState<string[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const targetUserRef = useRef<UserProfile | null>(null);
+  const isTypingRef = useRef(false);
+  const socketRef = useRef(socket);
   const [remoteTyping, setRemoteTyping] = useState(false);
 
   // E2EE Keys
@@ -173,7 +176,23 @@ export default function ChatPage() {
       const decryptedMsg = { ...msg, message: decryptedText };
       messageSoundRef.current?.play().catch(console.error);
       setMessages((prev) => [...prev, decryptedMsg]);
-      toast("New message received", { icon: "✉️" });
+
+      // Only show toaster if it's NOT from the current target user
+      const isFromCurrentTarget =
+        targetUserRef.current?.id === decryptedMsg.sender_id;
+      if (!isFromCurrentTarget) {
+        toast(
+          `New message from ${decryptedMsg.sender_id === user.id ? "you" : "someone"}`,
+          { icon: "✉️" },
+        );
+        setUnreadUserIds((prev) => {
+          if (!prev.includes(decryptedMsg.sender_id)) {
+            return [...prev, decryptedMsg.sender_id];
+          }
+          return prev;
+        });
+      }
+
       sendAppNotification("New Message", decryptedMsg.message);
 
       if (!document.hidden && user.id === decryptedMsg.receiver_id) {
@@ -240,17 +259,27 @@ export default function ChatPage() {
     targetUserRef.current = targetUser;
   }, [targetUser]);
 
+  // Keep isTypingRef and socketRef in sync for unmount cleanup
+  useEffect(() => {
+    isTypingRef.current = isTyping;
+  }, [isTyping]);
+
+  useEffect(() => {
+    socketRef.current = socket;
+  }, [socket]);
+
   // Cleanup typing timeout on unmount
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      if (isTyping && socket && targetUserRef.current) {
-        socket.emit("stop-typing", { receiverId: targetUserRef.current.id });
+      if (isTypingRef.current && socketRef.current && targetUserRef.current) {
+        socketRef.current.emit("stop-typing", {
+          receiverId: targetUserRef.current.id,
+        });
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -340,6 +369,9 @@ export default function ChatPage() {
 
   const handleSetTargetUser = async (u: UserProfile) => {
     setTargetUser(u);
+    // Clear unread status for this user
+    setUnreadUserIds((prev) => prev.filter((id) => id !== u.id));
+
     if (!u.publicKey) {
       targetPublicKeyRef.current = null;
       return;
@@ -411,6 +443,7 @@ export default function ChatPage() {
         <ChatSidebar
           availableUsers={availableUsers}
           onlineUsers={onlineUsers}
+          unreadUserIds={unreadUserIds}
           targetUser={targetUser}
           setTargetUser={handleSetTargetUser}
           user={user}

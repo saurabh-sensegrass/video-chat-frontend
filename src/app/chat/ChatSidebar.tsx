@@ -7,6 +7,7 @@ import { Search, User as UserIcon, LogOut, Home } from "lucide-react";
 interface ChatSidebarProps {
   availableUsers: UserProfile[];
   onlineUsers: string[];
+  unreadUserIds: string[];
   targetUser: UserProfile | null;
   setTargetUser: (user: UserProfile) => void;
   user: any;
@@ -17,6 +18,7 @@ interface ChatSidebarProps {
 export function ChatSidebar({
   availableUsers,
   onlineUsers,
+  unreadUserIds,
   targetUser,
   setTargetUser,
   user,
@@ -41,8 +43,10 @@ export function ChatSidebar({
                 Messages
               </h2>
               <p className="text-xs text-zinc-500 font-medium">
-                {onlineUsers.filter((id) => id !== user?.id).length} users
-                online
+                {(() => {
+                  const c = onlineUsers.filter((id) => id !== user?.id).length;
+                  return `${c} ${c === 1 ? "user" : "users"} online`;
+                })()}
               </p>
             </div>
           </div>
@@ -104,6 +108,9 @@ export function ChatSidebar({
                   {isOnline ? "Active now" : "Offline"}
                 </p>
               </div>
+              {unreadUserIds.includes(u.id) && !isSelected && (
+                <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-500/40 animate-pulse"></div>
+              )}
               {isSelected && (
                 <div className="w-1.5 h-8 bg-indigo-500 rounded-full absolute left-0"></div>
               )}
