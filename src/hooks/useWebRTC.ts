@@ -23,6 +23,9 @@ export function useWebRTC(
   );
   const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
+  const screenTrackRef = useRef<MediaStreamTrack | null>(null);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -49,12 +52,20 @@ export function useWebRTC(
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
+
+    if (screenTrackRef.current) {
+      screenTrackRef.current.stop();
+      screenTrackRef.current = null;
+    }
+
     stopMediaTracks(localStreamRef.current);
     localStreamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
     setCallState("idle");
     setRemoteUserId(null);
+    setIsScreenSharing(false);
+    setIsRemoteScreenSharing(false);
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
@@ -370,6 +381,15 @@ export function useWebRTC(
     );
 
     socket.on(
+      "webrtc-screen-share-status",
+      ({ isScreenSharing: rScreen, senderId }) => {
+        if (callState === "connected" && remoteUserId === senderId) {
+          setIsRemoteScreenSharing(rScreen);
+        }
+      },
+    );
+
+    socket.on(
       "webrtc-ice-candidate",
       async ({
         candidate,
@@ -467,6 +487,94 @@ export function useWebRTC(
     }
   };
 
+  const toggleScreenShare = async () => {
+    if (callState !== "connected" || !socket || !remoteUserId) return;
+
+    try {
+      if (isScreenSharing) {
+        // Stop screen share
+        if (screenTrackRef.current) {
+          screenTrackRef.current.stop();
+          screenTrackRef.current = null;
+        }
+        setIsScreenSharing(false);
+        socket.emit("webrtc-screen-share-status", {
+          receiverId: remoteUserId,
+          isScreenSharing: false,
+        });
+
+        // Revert to camera
+        const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (videoTrack && peerConnectionRef.current) {
+          const sender = peerConnectionRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "video");
+          if (sender) {
+            await sender.replaceTrack(videoTrack);
+          }
+        }
+
+        // Fix local video preview
+        if (localVideoRef.current && localStreamRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+      } else {
+        // Start screen share
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: false,
+        });
+        const screenTrack = displayStream.getVideoTracks()[0];
+
+        screenTrack.onended = () => {
+          if (screenTrackRef.current) {
+            screenTrackRef.current.stop();
+            screenTrackRef.current = null;
+          }
+          setIsScreenSharing(false);
+          socket.emit("webrtc-screen-share-status", {
+            receiverId: remoteUserId,
+            isScreenSharing: false,
+          });
+          const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+          if (videoTrack && peerConnectionRef.current) {
+            const sender = peerConnectionRef.current
+              .getSenders()
+              .find((s) => s.track?.kind === "video");
+            if (sender) sender.replaceTrack(videoTrack).catch(console.error);
+          }
+          if (localVideoRef.current && localStreamRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+          }
+        };
+
+        screenTrackRef.current = screenTrack;
+        setIsScreenSharing(true);
+        socket.emit("webrtc-screen-share-status", {
+          receiverId: remoteUserId,
+          isScreenSharing: true,
+        });
+
+        if (peerConnectionRef.current) {
+          const sender = peerConnectionRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "video");
+          if (sender) {
+            await sender.replaceTrack(screenTrack);
+          }
+        }
+
+        // Preview local screen share
+        if (localVideoRef.current) {
+          const previewStream = new MediaStream([screenTrack]);
+          localVideoRef.current.srcObject = previewStream;
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling screen share", err);
+    }
+  };
+
   return {
     callState,
     localVideoRef,
@@ -486,5 +594,8 @@ export function useWebRTC(
     toggleCamera,
     toggleMic,
     switchCamera,
+    toggleScreenShare,
+    isScreenSharing,
+    isRemoteScreenSharing,
   };
 }

@@ -33,6 +33,9 @@ import {
   Home,
   Shield,
   RefreshCcw,
+  ScreenShare,
+  ScreenShareOff,
+  MonitorUp,
 } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
@@ -95,6 +98,9 @@ function VideoModal({
     toggleCamera,
     toggleMic,
     switchCamera,
+    toggleScreenShare,
+    isScreenSharing,
+    isRemoteScreenSharing,
   } = webrtc;
 
   useEffect(() => {
@@ -150,19 +156,19 @@ function VideoModal({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 bg-black/90 p-4 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8 backdrop-blur-md overscroll-none"
+      className="fixed inset-0 z-50 bg-black p-2 sm:p-4 md:p-8 flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-8 backdrop-blur-md overscroll-none h-[100dvh]"
     >
       {/* Video Area */}
-      <div className="flex-1 flex flex-col h-full rounded-3xl overflow-hidden relative bg-zinc-900 border border-zinc-800">
+      <div className="flex-1 flex flex-col min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden relative bg-zinc-900 border border-zinc-800">
         {/* Fullscreen Toggle */}
         <button
           onClick={toggleFullscreen}
-          className="absolute top-6 left-6 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white backdrop-blur-sm transition-colors"
+          className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white backdrop-blur-sm transition-colors"
         >
           {isFullscreen ? (
-            <Minimize className="w-5 h-5" />
+            <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
           ) : (
-            <Maximize className="w-5 h-5" />
+            <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
           )}
         </button>
         {/* Remote Video (Main) */}
@@ -172,7 +178,7 @@ function VideoModal({
               ref={remoteVideoRef}
               autoPlay
               playsInline
-              className={`w-full h-full object-cover transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"}`}
+              className={`w-full h-full transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"} ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "object-cover"}`}
               style={{
                 filter:
                   filter === "grayscale"
@@ -184,10 +190,16 @@ function VideoModal({
                         : filter === "contrast"
                           ? "contrast(150%) brightness(1.15)"
                           : "brightness(1.15)",
-                transform: "scaleX(-1)", // Mirrored for the remote person
+                transform: isRemoteScreenSharing ? "none" : "scaleX(-1)", // Don't mirror if screen sharing
               }}
             />
-            {!isRemoteCameraOn && (
+            {isRemoteScreenSharing && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 bg-indigo-500/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg backdrop-blur-sm animate-pulse border border-white/20">
+                <MonitorUp className="w-3.5 h-3.5" />
+                Partner is sharing screen
+              </div>
+            )}
+            {!isRemoteCameraOn && !isRemoteScreenSharing && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-0">
                 <div className="w-24 h-24 sm:w-32 sm:h-32 bg-zinc-800 rounded-full flex items-center justify-center shadow-xl shadow-black/50 mb-6 border-4 border-zinc-700/50">
                   <VideoOff className="w-10 h-10 sm:w-14 sm:h-14 text-zinc-500" />
@@ -251,56 +263,79 @@ function VideoModal({
         )}
 
         {/* Local Video (PiP) */}
-        <div className="absolute top-6 right-6 w-32 md:w-48 aspect-[3/4] md:aspect-video bg-zinc-800 rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-700/50">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 w-24 sm:w-40 md:w-48 aspect-[3/4] md:aspect-video bg-zinc-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-700/50 z-10">
           <video
             ref={localVideoRef}
             autoPlay
             playsInline
             muted
             className="w-full h-full object-cover"
-            style={{ transform: "scaleX(-1)", filter: "brightness(1.15)" }} // Mirrored self-view + bumped brightness
+            style={{
+              transform: isScreenSharing ? "none" : "scaleX(-1)",
+              filter: "brightness(1.15)",
+            }} // Mirrored self-view + bumped brightness, unless screen sharing
           />
-          {!isCameraOn && (
+          {!isCameraOn && !isScreenSharing && (
             <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
               <VideoOff className="w-6 h-6 text-zinc-500" />
+            </div>
+          )}
+          {isScreenSharing && (
+            <div className="absolute inset-0 bg-indigo-600/20 backdrop-blur-[2px] flex items-center justify-center border-2 border-indigo-500 rounded-2xl">
+              <div className="bg-indigo-500 text-white p-2 rounded-lg shadow-lg">
+                <MonitorUp className="w-5 h-5 animate-bounce" />
+              </div>
             </div>
           )}
         </div>
 
         {/* Media Controls */}
         {callState === "connected" && (
-          <div className="absolute bottom-4 lg:bottom-8 left-1/2 -translate-x-1/2 w-[90%] md:w-auto max-w-md flex flex-wrap justify-center items-center gap-2 sm:gap-4 bg-zinc-950/80 backdrop-blur-xl px-4 sm:px-6 py-3 sm:py-4 rounded-3xl sm:rounded-full border border-zinc-800 shadow-2xl">
+          <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-auto flex items-center justify-center gap-1.5 sm:gap-3 bg-zinc-950/80 backdrop-blur-xl px-3 sm:px-6 py-2.5 sm:py-4 rounded-3xl sm:rounded-full border border-zinc-800 shadow-2xl z-50">
             <button
               onClick={toggleMic}
-              className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isMicOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
+              className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isMicOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
             >
               {isMicOn ? (
-                <Mic className="w-5 h-5" />
+                <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
               ) : (
-                <MicOff className="w-5 h-5" />
+                <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
             <button
               onClick={toggleCamera}
-              className={`w-10 sm:w-12 h-10 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isCameraOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
+              className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isCameraOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
             >
               {isCameraOn ? (
-                <Video className="w-5 h-5" />
+                <Video className="w-4 h-4 sm:w-5 sm:h-5" />
               ) : (
-                <VideoOff className="w-5 h-5" />
+                <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
             <button
               onClick={switchCamera}
-              className="w-10 sm:w-12 h-10 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex shrink-0 items-center justify-center text-white transition-colors"
+              className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex shrink-0 items-center justify-center text-white transition-colors"
               title="Switch Camera"
             >
-              <RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />
+              <RefreshCcw className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            <div className="hidden sm:block w-px h-8 bg-zinc-800 mx-1 sm:mx-2 shrink-0"></div>
+
+            <button
+              onClick={toggleScreenShare}
+              className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${!isScreenSharing ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"}`}
+              title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
+            >
+              {isScreenSharing ? (
+                <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
+            </button>
+
+            <div className="hidden xs:block w-px h-6 sm:h-8 bg-zinc-800 mx-0.5 sm:mx-1 shrink-0"></div>
             <div className="relative group shrink-0">
-              <button className="w-10 sm:w-12 h-10 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex items-center justify-center text-white transition-colors">
-                <Settings2 className="w-4 sm:w-5 h-4 sm:h-5" />
+              <button className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex items-center justify-center text-white transition-colors">
+                <Settings2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 hidden group-hover:flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 w-32 origin-bottom">
                 {["none", "grayscale", "sepia", "brightness", "contrast"].map(
@@ -316,25 +351,25 @@ function VideoModal({
                 )}
               </div>
             </div>
-            <div className="hidden sm:block w-px h-8 bg-zinc-800 mx-1 sm:mx-2 shrink-0"></div>
+            <div className="hidden xs:block w-px h-6 sm:h-8 bg-zinc-800 mx-0.5 sm:mx-1 shrink-0"></div>
             <button
               onClick={() => setShowChat((prev) => !prev)}
-              className={`w-10 sm:w-12 h-10 sm:h-12 shrink-0 rounded-full flex items-center justify-center transition-colors ${showChat ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-800 hover:bg-zinc-700 text-white"}`}
+              className={`w-9 h-9 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center transition-colors ${showChat ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-800 hover:bg-zinc-700 text-white"}`}
             >
-              <MessageSquare className="w-4 sm:w-5 h-4 sm:h-5" />
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             <button
               onClick={endCall}
-              className="w-12 sm:w-14 h-12 sm:h-14 shrink-0 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 shadow-lg shadow-red-600/30 ml-auto sm:ml-0"
+              className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 shadow-lg shadow-red-600/30 ml-1 sm:ml-2"
             >
-              <PhoneOff className="w-5 sm:w-6 h-5 sm:h-6" />
+              <PhoneOff className="w-4 h-4 sm:w-6 sm:h-6" />
             </button>
           </div>
         )}
       </div>
       {/* Ephemeral Chat Panel */}
       {callState === "connected" && showChat && (
-        <div className="absolute md:relative bottom-4 right-4 md:bottom-auto md:right-auto z-40 h-[50dvh] md:h-full w-[calc(100%-32px)] sm:w-[350px] md:w-80 lg:w-96 flex flex-col bg-zinc-900/95 backdrop-blur-2xl border border-zinc-800 rounded-3xl overflow-hidden shrink-0 animate-in slide-in-from-right-8 duration-300 shadow-2xl">
+        <div className="relative md:relative h-[40dvh] md:h-full w-full md:w-80 lg:w-96 flex flex-col bg-zinc-900/95 backdrop-blur-2xl border border-zinc-800 rounded-2xl sm:rounded-3xl overflow-hidden shrink-0 animate-in slide-in-from-bottom-8 md:slide-in-from-right-8 duration-300 shadow-2xl">
           <div className="p-4 sm:p-5 border-b border-zinc-800/80 bg-zinc-900/50 backdrop-blur-sm flex items-center justify-between">
             <h3 className="font-semibold text-zinc-100 flex items-center gap-2">
               <Moon className="w-4 h-4 text-indigo-400" />
