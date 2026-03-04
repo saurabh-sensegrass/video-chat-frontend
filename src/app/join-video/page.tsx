@@ -40,7 +40,13 @@ export default function JoinVideoPage() {
           headers: { "Content-Type": "application/json" },
         },
       );
+      if (!res.ok) {
+        throw new Error(`Failed to create room: ${res.status}`);
+      }
       const { roomId, hostToken } = await res.json();
+      if (!roomId || !hostToken) {
+        throw new Error("Invalid response from server");
+      }
 
       // Store host token temporarily in sessionStorage for the redirect
       // This is still client-side, but it's not "trusted" by the server
