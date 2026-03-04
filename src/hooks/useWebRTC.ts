@@ -67,6 +67,10 @@ export function useWebRTC(
     setRemoteUserId(null);
     setIsScreenSharing(false);
     setIsRemoteScreenSharing(false);
+    setIsCameraOn(true);
+    setIsMicOn(true);
+    setIsRemoteCameraOn(true);
+    setIsRemoteMicOn(true);
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
@@ -257,16 +261,15 @@ export function useWebRTC(
         }
       }
 
-      setLocalStream((prev) => {
-        if (prev) {
-          prev.getVideoTracks().forEach((track) => track.stop());
-          prev.removeTrack(prev.getVideoTracks()[0]);
-          prev.addTrack(newVideoTrack);
-        }
-        return prev;
-      });
-
-      localStreamRef.current = localStream;
+      // Update the existing stream in-place
+      const currentStream = localStreamRef.current;
+      if (currentStream) {
+        currentStream.getVideoTracks().forEach((track) => track.stop());
+        const oldTrack = currentStream.getVideoTracks()[0];
+        if (oldTrack) currentStream.removeTrack(oldTrack);
+        currentStream.addTrack(newVideoTrack);
+      }
+      setLocalStream(currentStream);
       if (localVideoRef.current && localStreamRef.current) {
         localVideoRef.current.srcObject = localStreamRef.current;
       }
@@ -428,6 +431,10 @@ export function useWebRTC(
         if (callState === "receiving") {
           toast("Missed Call", { icon: "📵" });
         }
+        if (screenTrackRef.current) {
+          screenTrackRef.current.stop();
+          screenTrackRef.current = null;
+        }
         if (peerConnectionRef.current) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
@@ -438,6 +445,12 @@ export function useWebRTC(
         setRemoteStream(null);
         setCallState("idle");
         setRemoteUserId(null);
+        setIsScreenSharing(false);
+        setIsRemoteScreenSharing(false);
+        setIsCameraOn(true);
+        setIsMicOn(true);
+        setIsRemoteCameraOn(true);
+        setIsRemoteMicOn(true);
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       }

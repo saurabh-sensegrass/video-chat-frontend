@@ -152,12 +152,32 @@ export default function GuestVideoRoom() {
         icon: "🚫",
         duration: 5000,
       });
-      endCall();
       router.push("/join-video");
     };
 
+    const handleHostDisconnected = () => {
+      toast("The Room Host has disconnected. The call is ending.", {
+        icon: "⚠️",
+        duration: 5000,
+      });
+      sendAppNotification(
+        "Host Disconnected",
+        "The room host has left. The call is ending.",
+      );
+      setTimeout(() => {
+        router.push("/join-video");
+      }, 2000);
+    };
+
     window.addEventListener("guest-kicked-out", handleKicked);
-    return () => window.removeEventListener("guest-kicked-out", handleKicked);
+    window.addEventListener("guest-host-disconnected", handleHostDisconnected);
+    return () => {
+      window.removeEventListener("guest-kicked-out", handleKicked);
+      window.removeEventListener(
+        "guest-host-disconnected",
+        handleHostDisconnected,
+      );
+    };
   }, [router]);
 
   // Robust Socket Listeners
@@ -168,21 +188,6 @@ export default function GuestVideoRoom() {
     socket.on("room-full", () => {
       setIsRoomFull(true);
       setIsJoined(false);
-    });
-
-    socket.on("host-disconnected", () => {
-      toast("The Room Host has disconnected. The call is ending.", {
-        icon: "⚠️",
-        duration: 5000,
-      });
-      sendAppNotification(
-        "Host Disconnected",
-        "The room host has left. The call is ending.",
-      );
-      setTimeout(() => {
-        endCall();
-        router.push("/join-video");
-      }, 2000);
     });
 
     socket.on(
@@ -262,7 +267,6 @@ export default function GuestVideoRoom() {
     return () => {
       socket.off("room-full");
       socket.off("room-creator");
-      socket.off("host-disconnected");
       socket.off("user-joined");
       socket.off("existing-user");
       socket.off("user-left");
@@ -659,7 +663,7 @@ export default function GuestVideoRoom() {
                   : "none",
             }}
           />
-          {!isCameraOn && (
+          {!isCameraOn && !isScreenSharing && (
             <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
               <VideoOff className="w-6 h-6 text-zinc-500" />
             </div>

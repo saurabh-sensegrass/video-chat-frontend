@@ -66,6 +66,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     setCallState("idle");
     setIsScreenSharing(false);
     setIsRemoteScreenSharing(false);
+    setIsCameraOn(true);
+    setIsMicOn(true);
+    setIsRemoteMicOn(true);
+    setIsRemoteCameraOn(true);
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
@@ -247,6 +251,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
     socket.on("webrtc-call-ended", ({ senderId }) => {
       if (senderId !== socket.id) {
+        if (screenTrackRef.current) {
+          screenTrackRef.current.stop();
+          screenTrackRef.current = null;
+        }
         if (peerConnectionRef.current) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
@@ -256,6 +264,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         localStreamRef.current = null;
         setRemoteStream(null);
         setCallState("idle");
+        setIsScreenSharing(false);
+        setIsRemoteScreenSharing(false);
+        setIsCameraOn(true);
+        setIsMicOn(true);
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
@@ -265,6 +277,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
     socket.on("user-left", ({ userId }) => {
       if (userId !== socket.id) {
+        if (screenTrackRef.current) {
+          screenTrackRef.current.stop();
+          screenTrackRef.current = null;
+        }
         if (peerConnectionRef.current) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
@@ -274,6 +290,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         localStreamRef.current = null;
         setRemoteStream(null);
         setCallState("idle");
+        setIsScreenSharing(false);
+        setIsRemoteScreenSharing(false);
+        setIsCameraOn(true);
+        setIsMicOn(true);
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
@@ -358,12 +378,18 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       window.dispatchEvent(new CustomEvent("guest-kicked-out"));
     });
 
+    socket.on("host-disconnected", () => {
+      endCallRef.current();
+      window.dispatchEvent(new CustomEvent("guest-host-disconnected"));
+    });
+
     return () => {
       socket.off("room-creator");
       socket.off("room-permissions-sync");
       socket.off("room-permissions-updated");
       socket.off("media-status-update");
       socket.off("kicked-out");
+      socket.off("host-disconnected");
     };
   }, [socket, roomId, isMicOn, isCameraOn, isScreenSharing, isCreator]);
 
