@@ -94,6 +94,16 @@ export async function subscribeToPush(token: string) {
     const { publicKey } = await response.json();
     const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
+    if (applicationServerKey.length !== 65) {
+      console.error(
+        "Invalid VAPID public key length:",
+        applicationServerKey.length,
+      );
+      throw new Error(
+        `Invalid VAPID public key length: ${applicationServerKey.length}. Expected 65.`,
+      );
+    }
+
     // If we have an existing subscription, check if VAPID keys match
     // If not, we MUST re-subscribe with the new key
     if (subscription) {
@@ -116,11 +126,31 @@ export async function subscribeToPush(token: string) {
 
     console.debug("Subscribing with Public Key:", publicKey);
     if (!subscription) {
-      // Subscribe to push manager
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
-      });
+      try {
+        // Subscribe to push manager
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+      } catch (err: any) {
+        // Robust self-healing: if it fails with AbortError, clear state and retry once
+        if (err.name === "AbortError") {
+          console.warn(
+            "Push subscription aborted by browser, attempting to clear state and retry...",
+          );
+          const existing = await registration.pushManager.getSubscription();
+          if (existing) {
+            await existing.unsubscribe();
+          }
+          // Second attempt
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey,
+          });
+        } else {
+          throw err;
+        }
+      }
     }
 
     // 3. Send subscription to our backend
@@ -148,9 +178,10 @@ export async function subscribeToPush(token: string) {
     return true;
   } catch (err) {
     console.error("Error subscribing to push notifications:", {
-      error: err,
-      message: err instanceof Error ? err.message : String(err),
       name: err instanceof Error ? err.name : "UnknownError",
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      raw: err,
     });
     return false;
   }
