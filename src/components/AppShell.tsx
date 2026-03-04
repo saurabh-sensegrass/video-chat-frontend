@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useAuth } from "@/context/AuthContext";
+import { subscribeToPush } from "@/lib/notifications";
 
 /**
  * Client wrapper that shows a loading/splash screen while the app hydrates.
@@ -30,6 +32,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       setIsReady(true);
     }
   }, []);
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const token = user?.token || (user as any)?.accessToken;
+    if (
+      token &&
+      typeof window !== "undefined" &&
+      "serviceWorker" in navigator
+    ) {
+      // Try subscribing to push notifications once logged in
+      subscribeToPush(token).catch(console.error);
+    }
+  }, [user]);
 
   if (!isReady) {
     return <LoadingScreen />;

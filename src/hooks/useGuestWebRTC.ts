@@ -231,10 +231,15 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
         }
+        stopMediaTracks(localStreamRef.current);
+        setLocalStream(null);
+        localStreamRef.current = null;
         setRemoteStream(null);
         setCallState("idle");
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
+        if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       }
     });
 
@@ -244,10 +249,15 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
         }
+        stopMediaTracks(localStreamRef.current);
+        setLocalStream(null);
+        localStreamRef.current = null;
         setRemoteStream(null);
         setCallState("idle");
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
+        if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       }
     });
 
@@ -258,7 +268,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       socket.off("webrtc-call-ended");
       socket.off("user-left");
     };
-  }, [socket, roomId, initLocalStream, createPeerConnection]);
+  }, [socket, roomId, initLocalStream, createPeerConnection, stopMediaTracks]);
 
   // Track creator status and permissions
   useEffect(() => {

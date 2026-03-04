@@ -6,7 +6,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// For future Web Push handling (if implemented)
+// Handle Web Push event from Backend
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || "CommSphere";
@@ -27,20 +27,30 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  // Try to find an existing window and focus it
+  const urlToOpen = new URL(
+    event.notification.data || "/",
+    self.location.origin,
+  ).href;
+
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
-        // If we found a window, focus it
+        // Find matching window
         for (const client of clientList) {
-          if ("focus" in client) {
+          if (client.url === urlToOpen && "focus" in client) {
             return client.focus();
           }
         }
-        // If no window exists, open a new one
+        // Focus any existing window and navigate
+        if (clientList.length > 0 && "focus" in clientList[0]) {
+          const client = clientList[0];
+          client.navigate(urlToOpen);
+          return client.focus();
+        }
+        // Or open new window
         if (clients.openWindow) {
-          return clients.openWindow("/");
+          return clients.openWindow(urlToOpen);
         }
       }),
   );

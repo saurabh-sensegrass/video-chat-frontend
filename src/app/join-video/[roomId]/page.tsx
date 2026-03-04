@@ -152,6 +152,7 @@ export default function GuestVideoRoom() {
         icon: "🚫",
         duration: 5000,
       });
+      endCall();
       router.push("/join-video");
     };
 
