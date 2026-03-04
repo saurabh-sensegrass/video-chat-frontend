@@ -36,6 +36,8 @@ import {
   ScreenShare,
   ScreenShareOff,
   MonitorUp,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
@@ -79,6 +81,7 @@ function VideoModal({
   const [ephemeralMsg, setEphemeralMsg] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showChat, setShowChat] = useState(false); // Default to collapsed per common UX
+  const [remoteVideoZoom, setRemoteVideoZoom] = useState(1);
   const ephemeralEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +104,7 @@ function VideoModal({
     toggleScreenShare,
     isScreenSharing,
     isRemoteScreenSharing,
+    isFrontCamera,
   } = webrtc;
 
   useEffect(() => {
@@ -171,6 +175,38 @@ function VideoModal({
             <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
           )}
         </button>
+
+        {/* Zoom Controls */}
+        {callState === "connected" && (
+          <div className="absolute top-4 right-20 sm:top-6 sm:right-28 lg:right-32 z-10 flex flex-col gap-2">
+            <button
+              onClick={() =>
+                setRemoteVideoZoom((prev) => Math.min(prev + 0.2, 3))
+              }
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+            <button
+              onClick={() =>
+                setRemoteVideoZoom((prev) => Math.max(prev - 0.2, 1))
+              }
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+            {remoteVideoZoom > 1 && (
+              <button
+                onClick={() => setRemoteVideoZoom(1)}
+                className="bg-indigo-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-lg animate-in fade-in zoom-in duration-200"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        )}
         {/* Remote Video (Main) */}
         {callState === "connected" ? (
           <>
@@ -178,7 +214,7 @@ function VideoModal({
               ref={remoteVideoRef}
               autoPlay
               playsInline
-              className={`w-full h-full transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"} ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "object-cover"}`}
+              className={`w-full h-full transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"} ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "sm:object-cover object-contain"}`}
               style={{
                 filter:
                   filter === "grayscale"
@@ -190,7 +226,7 @@ function VideoModal({
                         : filter === "contrast"
                           ? "contrast(150%) brightness(1.15)"
                           : "brightness(1.15)",
-                transform: isRemoteScreenSharing ? "none" : "scaleX(-1)", // Don't mirror if screen sharing
+                transform: `${isRemoteScreenSharing ? "" : "scaleX(-1) "}scale(${remoteVideoZoom})`,
               }}
             />
             {isRemoteScreenSharing && (
@@ -269,11 +305,15 @@ function VideoModal({
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className={`w-full h-full transition-all ${isScreenSharing ? "object-contain bg-zinc-900/50" : "object-cover"}`}
             style={{
-              transform: isScreenSharing ? "none" : "scaleX(-1)",
+              transform: isScreenSharing
+                ? "none"
+                : isFrontCamera
+                  ? "scaleX(-1)"
+                  : "none",
               filter: "brightness(1.15)",
-            }} // Mirrored self-view + bumped brightness, unless screen sharing
+            }} // Mirrored self-view + bumped brightness, unless screen sharing or back camera
           />
           {!isCameraOn && !isScreenSharing && (
             <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
@@ -312,13 +352,15 @@ function VideoModal({
                 <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
-            <button
-              onClick={switchCamera}
-              className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex shrink-0 items-center justify-center text-white transition-colors"
-              title="Switch Camera"
-            >
-              <RefreshCcw className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+            {availableCameras.length > 1 && (
+              <button
+                onClick={switchCamera}
+                className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex shrink-0 items-center justify-center text-white transition-colors"
+                title="Switch Camera"
+              >
+                <RefreshCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
 
             <button
               onClick={toggleScreenShare}
@@ -523,7 +565,8 @@ export default function ChatPage() {
 
     const fetchInitialData = async () => {
       if (!user) return;
-      const token = user.token || (user as any)?.accessToken;
+      const token =
+        user.token || (user as { accessToken?: string })?.accessToken;
       if (!token) return;
 
       try {
@@ -664,7 +707,7 @@ export default function ChatPage() {
       setOnlineUsers(users);
     };
 
-    const handleIncomingCall = ({ callerId }: { callerId: string }) => {
+    const handleIncomingCall = () => {
       toast("Incoming Video Call...", { icon: "📞", duration: 5000 });
       sendAppNotification("Incoming Video Call", "Someone is calling you");
     };
@@ -810,7 +853,10 @@ export default function ChatPage() {
   // We can filter them out when call state changes to idle.
   useEffect(() => {
     if (callState === "idle") {
-      setMessages((prev) => prev.filter((m) => !m.isEphemeral));
+      setTimeout(
+        () => setMessages((prev) => prev.filter((m) => !m.isEphemeral)),
+        0,
+      );
     }
   }, [callState]);
 

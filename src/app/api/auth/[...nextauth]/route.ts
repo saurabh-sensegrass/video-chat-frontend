@@ -125,7 +125,7 @@ export const authOptions: AuthOptions = {
             publicKey: finalPublicKey,
             token: data.token,
             wrappedPrivateKey: finalWrappedPrivateKey,
-          } as any;
+          };
         }
 
         return null;
@@ -133,10 +133,17 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user }) {
       if (user) {
         // Initial sign in
-        const usr = user as any;
+        const usr = user as {
+          id: string;
+          role: string;
+          is_active: boolean;
+          publicKey: string;
+          token: string;
+          wrappedPrivateKey?: string;
+        };
         token.id = usr.id;
         token.role = usr.role;
         token.is_active = usr.is_active;
@@ -153,17 +160,25 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         // Map token values to session
-        const anySessionUser = session.user as any;
-        anySessionUser.id = token.id;
-        anySessionUser.role = token.role;
-        anySessionUser.is_active = token.is_active;
-        anySessionUser.publicKey = token.publicKey;
-        anySessionUser.token = token.accessToken;
+        const anySessionUser = session.user as {
+          id: string;
+          role: string;
+          is_active: boolean;
+          publicKey: string;
+          token: string;
+          privateKey?: string;
+        };
+        const t = token as { [key: string]: unknown };
+        anySessionUser.id = t.id as string;
+        anySessionUser.role = t.role as string;
+        anySessionUser.is_active = t.is_active as boolean;
+        anySessionUser.publicKey = t.publicKey as string;
+        anySessionUser.token = t.accessToken as string;
 
         // UNWRAP THE PRIVATE KEY FOR CLIENT REACT MEMORY
-        if (token.wrappedPrivateKey) {
+        if (t.wrappedPrivateKey) {
           anySessionUser.privateKey = unwrapPrivateKey(
-            token.wrappedPrivateKey as string,
+            t.wrappedPrivateKey as string,
           );
         }
       }

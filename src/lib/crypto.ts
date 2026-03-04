@@ -173,7 +173,7 @@ export async function decryptE2EEMessage(
         privateKey,
         base64ToBuffer(encryptedKeyB64),
       );
-    } catch (primaryErr) {
+    } catch {
       console.warn("Primary AES key decryption failed. Trying fallback key...");
       // 1b. Fallback attempt: if strict ID matching failed, try the OTHER key in the payload
       const fallbackKeyB64 = isSender

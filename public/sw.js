@@ -1,4 +1,4 @@
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -17,18 +17,24 @@ self.addEventListener("push", (event) => {
     data = { body: event.data ? event.data.text() : "New message" };
   }
 
-  const title = data.title || "CommSphere";
-  const body = data.body || "New notification";
+  const title = data.title || "Video Chat App";
+  const body = data.body || "You have a new notification";
 
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: "/icon.png",
-      badge: "/icon.png",
-      vibrate: [200, 100, 200],
-      data: data.url,
-    }),
-  );
+  const options = {
+    body,
+    icon: "/icon.png",
+    badge: "/icon.png", // Must be a small monochrome image for Android status bar
+    vibrate: [200, 100, 200], // Native vibration pattern
+    tag: "video-chat-message", // Groups notifications
+    renotify: true, // Alerts the user even if a notification with this tag already exists
+    data: data.url || "/", // Where to go on click
+    actions: [
+      { action: "open", title: "Open App" },
+      { action: "close", title: "Dismiss" },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Handle clicking on the notification

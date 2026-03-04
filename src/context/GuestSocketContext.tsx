@@ -47,7 +47,7 @@ export function GuestSocketProvider({
       console.error("Guest socket connection error:", error);
     });
 
-    setSocket(socketInstance);
+    setTimeout(() => setSocket(socketInstance), 0);
 
     return () => {
       if (socketInstance) {

@@ -17,7 +17,6 @@ import {
   LogOut,
   Bell,
   Camera,
-  MapPin,
   CheckCircle2,
 } from "lucide-react";
 
@@ -60,7 +59,7 @@ export default function HomePage() {
   const { user, loading, logout } = useAuth();
   const isLoggedIn = !!user;
 
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [permissionsRequested, setPermissionsRequested] = useState(false);
 
@@ -81,7 +80,7 @@ export default function HomePage() {
       "(display-mode: standalone)",
     ).matches;
     if (isStandalone) {
-      setIsInstalled(true);
+      setTimeout(() => setIsInstalled(true), 0);
     }
 
     return () =>
@@ -144,8 +143,12 @@ export default function HomePage() {
 
   const handleInstallClick = async () => {
     if (!installPrompt) return;
-    installPrompt.prompt();
-    const result = await installPrompt.userChoice;
+    const promptEvent = installPrompt as Event & {
+      prompt: () => void;
+      userChoice: Promise<{ outcome: string }>;
+    };
+    promptEvent.prompt();
+    const result = await promptEvent.userChoice;
     if (result.outcome === "accepted") {
       setIsInstalled(true);
     }

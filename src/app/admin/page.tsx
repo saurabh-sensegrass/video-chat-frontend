@@ -53,10 +53,12 @@ export default function AdminPage() {
       fetchUsers();
       fetchSettings();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const fetchUsers = async () => {
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -69,13 +71,18 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setUsers(data);
-    } catch (err: any) {
-      setError("Failed to fetch users: " + err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError("Failed to fetch users: " + err.message);
+      } else {
+        setError("Failed to fetch users");
+      }
     }
   };
 
   const fetchSettings = async () => {
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -89,7 +96,7 @@ export default function AdminPage() {
         const data = await res.json();
         if (data) setSaveChatHistory(data.save_chat_history);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to fetch settings:", err);
     }
   };
@@ -100,7 +107,8 @@ export default function AdminPage() {
     setSuccessMsg("");
     setActionLoading(true);
 
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -128,8 +136,8 @@ export default function AdminPage() {
       setNewUserEmail("");
       setNewUserPassword("");
       fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     } finally {
       setActionLoading(false);
     }
@@ -139,7 +147,8 @@ export default function AdminPage() {
     setError("");
     setSuccessMsg("");
 
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -157,8 +166,8 @@ export default function AdminPage() {
 
       if (!res.ok) throw new Error("Failed to update status");
       fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     }
   };
 
@@ -166,7 +175,8 @@ export default function AdminPage() {
     setError("");
     setSuccessMsg("");
 
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -186,8 +196,8 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to update settings");
       setSaveChatHistory(newValue);
       setSuccessMsg("Settings updated");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     }
   };
 
@@ -196,7 +206,8 @@ export default function AdminPage() {
     setError("");
     setSuccessMsg("");
 
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -210,8 +221,8 @@ export default function AdminPage() {
 
       if (!res.ok) throw new Error("Failed to clear messages");
       setSuccessMsg("Chat history cleared");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     }
   };
 

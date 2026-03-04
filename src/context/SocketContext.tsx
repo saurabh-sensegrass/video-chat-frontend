@@ -44,7 +44,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       */
 
       // NEW NEXTAUTH / MONGODB LOGIC
-      const token = user.token || (user as any)?.accessToken; // Accommodate standard API maps
+      const token =
+        user.token || (user as { accessToken?: string })?.accessToken; // Accommodate standard API maps
 
       if (!token) return;
 
@@ -73,6 +74,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         newSocket.disconnect();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return (

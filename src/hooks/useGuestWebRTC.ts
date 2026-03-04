@@ -145,7 +145,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       setIsMicOn(false);
       return null;
     }
-  }, []);
+  }, [currentCameraId]);
 
   const createPeerConnection = useCallback(
     (stream: MediaStream) => {
@@ -451,7 +451,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       socket.off("host-action");
       socket.off("guest-screen-share-status");
     };
-  }, [socket, isScreenSharing]);
+  }, [socket, isScreenSharing, isCreator]);
 
   // Reactively attach local stream
   useEffect(() => {
@@ -629,7 +629,13 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     } catch (err) {
       console.error("Error toggling screen share", err);
     }
-  }, [isScreenSharing]);
+  }, [
+    isScreenSharing,
+    socket,
+    roomId,
+    permissions.allowScreenShare,
+    isCreator,
+  ]);
 
   return {
     callState,

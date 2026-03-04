@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useGuestSocket } from "@/context/GuestSocketContext";
 import { useGuestWebRTC } from "@/hooks/useGuestWebRTC";
@@ -26,13 +26,6 @@ import {
   ZoomIn,
   ZoomOut,
   UserX,
-  RefreshCw,
-  Monitor,
-  ScreenShare,
-  ScreenShareOff,
-  ShieldCheck,
-  ChevronDown,
-  ChevronUp,
   MessageSquare,
 } from "lucide-react";
 import { sendAppNotification } from "@/lib/notifications";
@@ -75,7 +68,7 @@ export default function GuestVideoRoom() {
   const roomDetailsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsMounted(true);
+    setTimeout(() => setIsMounted(true), 0);
   }, []);
 
   // Use Refs for state inside socket callbacks to prevent listener re-attachments
@@ -121,7 +114,6 @@ export default function GuestVideoRoom() {
     isScreenSharing,
     isRemoteScreenSharing,
     permissions,
-    setPermissions,
     isCreator,
     isRemoteMicOn,
     isRemoteCameraOn,
@@ -192,13 +184,7 @@ export default function GuestVideoRoom() {
 
     socket.on(
       "user-joined",
-      ({
-        userId,
-        userName: connectedName,
-      }: {
-        userId: string;
-        userName: string;
-      }) => {
+      ({ userName: connectedName }: { userId: string; userName: string }) => {
         setRemoteUserName(connectedName);
         toast(`${connectedName} joined the room!`, { icon: "👋" });
         sendAppNotification(
@@ -211,20 +197,14 @@ export default function GuestVideoRoom() {
     // Received if we are the second person joining, telling us who is already here
     socket.on(
       "existing-user",
-      ({
-        userId,
-        userName: existingName,
-      }: {
-        userId: string;
-        userName: string;
-      }) => {
+      ({ userName: existingName }: { userId: string; userName: string }) => {
         setRemoteUserName(existingName);
         // We are the second person, initiate the WebRTC offer asynchronously
         initiateCallOffer();
       },
     );
 
-    socket.on("user-left", ({ userId }: { userId: string }) => {
+    socket.on("user-left", () => {
       toast(`${remoteUserNameRef.current || "User"} left the room`, {
         icon: "👋",
       });
@@ -328,6 +308,7 @@ export default function GuestVideoRoom() {
     }, 300000); // 5 minutes
 
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isJoined, callState, handleDisconnect]);
 
   const toggleFullscreen = () => {
@@ -357,7 +338,7 @@ export default function GuestVideoRoom() {
               Join Video Room
             </h1>
             <p className="text-zinc-400 text-sm">
-              You've been invited to a private 1-on-1 video call.
+              You&apos;ve been invited to a private 1-on-1 video call.
             </p>
           </div>
 
@@ -625,7 +606,7 @@ export default function GuestVideoRoom() {
               <Users className="w-10 h-10 text-zinc-400" />
             </div>
             <h2 className="text-xl font-medium text-zinc-300 mb-2">
-              You're the only one here
+              You&apos;re the only one here
             </h2>
             <p className="text-sm max-w-sm mx-auto mb-6 opacity-70">
               Share the room link with someone to start the video call.

@@ -1,0 +1,284 @@
+
+> frontend@1.1.0 lint
+> eslint
+
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/public/sw.js
+  1:35  warning  'event' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/admin/page.tsx
+   56:6   warning  React Hook useEffect has missing dependencies: 'fetchSettings' and 'fetchUsers'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   59:49  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+   72:19  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+   78:49  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+   92:19  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  103:49  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  131:19  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  142:49  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  160:19  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  169:49  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  189:19  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  199:49  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+  213:19  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/api/auth/[...nextauth]/route.ts
+  128:16  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  136:30  warning  'trigger' is defined but never used       @typescript-eslint/no-unused-vars
+  136:39  warning  'session' is defined but never used       @typescript-eslint/no-unused-vars
+  139:29  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:48  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/chat/page.tsx
+   96:5   warning  'availableCameras' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  566:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  707:35  warning  'callerId' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  853:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/chat/page.tsx:853:7
+  851 |   useEffect(() => {
+  852 |     if (callState === "idle") {
+> 853 |       setMessages((prev) => prev.filter((m) => !m.isEphemeral));
+      |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  854 |     }
+  855 |   }, [callState]);
+  856 |  react-hooks/set-state-in-effect
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/join-video/[roomId]/page.tsx
+    3:39  warning  'useCallback' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   29:3   warning  'RefreshCw' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   30:3   warning  'Monitor' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   31:3   warning  'ScreenShare' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   32:3   warning  'ScreenShareOff' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   33:3   warning  'ShieldCheck' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   34:3   warning  'ChevronDown' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   35:3   warning  'ChevronUp' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   78:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/join-video/[roomId]/page.tsx:78:5
+  76 |
+  77 |   useEffect(() => {
+> 78 |     setIsMounted(true);
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  79 |   }, []);
+  80 |
+  81 |   // Use Refs for state inside socket callbacks to prevent listener re-attachments  react-hooks/set-state-in-effect
+  124:5   warning  'setPermissions' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  196:9   warning  'userId' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  215:9   warning  'userId' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  227:31  warning  'userId' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  310:9   warning  The 'handleDisconnect' function makes the dependencies of useEffect Hook (at line 331) change on every render. To fix this, wrap the definition of 'handleDisconnect' in its own useCallback() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+  360:18  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react/no-unescaped-entities
+  628:18  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react/no-unescaped-entities
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/login/page.tsx
+   13:7   warning  'BACKEND_URL' is assigned a value but never used                                                                                                                  @typescript-eslint/no-unused-vars
+   90:19  error    Unexpected any. Specify a different type                                                                                                                          @typescript-eslint/no-explicit-any
+  164:11  error    Do not use an `<a>` element to navigate to `/join-video/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+  171:11  error    Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages             @next/next/no-html-link-for-pages
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/page.tsx
+  20:3   warning  'MapPin' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  63:54  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-explicit-any
+  84:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/page.tsx:84:7
+  82 |     ).matches;
+  83 |     if (isStandalone) {
+> 84 |       setIsInstalled(true);
+     |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  85 |     }
+  86 |
+  87 |     return () =>  react-hooks/set-state-in-effect
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/app/superadmin/page.tsx
+   64:6   warning  React Hook useEffect has a missing dependency: 'fetchAdmins'. Either include it or remove the dependency array      react-hooks/exhaustive-deps
+   72:6   warning  React Hook useEffect has a missing dependency: 'fetchAdminUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   75:49  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+   90:18  warning  'e' is defined but never used                                                                                       @typescript-eslint/no-unused-vars
+   97:19  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  104:49  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  117:19  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  126:49  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  156:19  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  167:49  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  185:19  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/components/AppShell.tsx
+  25:28  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  33:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/components/AppShell.tsx:33:7
+  31 |     } else {
+  32 |       // Browser mode: skip splash
+> 33 |       setIsReady(true);
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  34 |     }
+  35 |   }, []);
+  36 |  react-hooks/set-state-in-effect
+  40:43  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/context/GuestSocketContext.tsx
+  50:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/context/GuestSocketContext.tsx:50:5
+  48 |     });
+  49 |
+> 50 |     setSocket(socketInstance);
+     |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  51 |
+  52 |     return () => {
+  53 |       if (socketInstance) {  react-hooks/set-state-in-effect
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/context/SocketContext.tsx
+  47:44  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  76:6   warning  React Hook useEffect has a missing dependency: 'socket'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/hooks/useGuestWebRTC.ts
+   90:39  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `currentCameraId`, but the source dependencies were []. Inferred dependency not present in source.
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/hooks/useGuestWebRTC.ts:90:39
+   88 |   }, []);
+   89 |
+>  90 |   const initLocalStream = useCallback(async () => {
+      |                                       ^^^^^^^^^^^^^
+>  91 |     if (localStreamRef.current) return localStreamRef.current;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  92 |     try {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 147 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 148 |   }, []);
+      | ^^^^ Could not preserve existing manual memoization
+  149 |
+  150 |   const createPeerConnection = useCallback(
+  151 |     (stream: MediaStream) => {                     react-hooks/preserve-manual-memoization
+  148:6   warning  React Hook useCallback has a missing dependency: 'currentCameraId'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+  454:6   warning  React Hook useEffect has a missing dependency: 'isCreator'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  545:41  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `isCreator`, but the source dependencies were [isScreenSharing]. Inferred different dependency than source.
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/hooks/useGuestWebRTC.ts:545:41
+  543 |   }, [availableCameras, currentCameraId, isCameraOn]);
+  544 |
+> 545 |   const toggleScreenShare = useCallback(async () => {
+      |                                         ^^^^^^^^^^^^^
+> 546 |     // Bypass check for host (creator)
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 547 |     if (!isCreator && !permissions.allowScreenShare && !isScreenSharing) return;
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 631 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 632 |   }, [isScreenSharing]);
+      | ^^^^ Could not preserve existing manual memoization
+  633 |
+  634 |   return {
+  635 |     callState,                     react-hooks/preserve-manual-memoization
+  545:41  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `permissions.allowScreenShare`, but the source dependencies were [isScreenSharing]. Inferred different dependency than source.
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/hooks/useGuestWebRTC.ts:545:41
+  543 |   }, [availableCameras, currentCameraId, isCameraOn]);
+  544 |
+> 545 |   const toggleScreenShare = useCallback(async () => {
+      |                                         ^^^^^^^^^^^^^
+> 546 |     // Bypass check for host (creator)
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 547 |     if (!isCreator && !permissions.allowScreenShare && !isScreenSharing) return;
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 631 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 632 |   }, [isScreenSharing]);
+      | ^^^^ Could not preserve existing manual memoization
+  633 |
+  634 |   return {
+  635 |     callState,  react-hooks/preserve-manual-memoization
+  545:41  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `socket`, but the source dependencies were [isScreenSharing]. Inferred different dependency than source.
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/hooks/useGuestWebRTC.ts:545:41
+  543 |   }, [availableCameras, currentCameraId, isCameraOn]);
+  544 |
+> 545 |   const toggleScreenShare = useCallback(async () => {
+      |                                         ^^^^^^^^^^^^^
+> 546 |     // Bypass check for host (creator)
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 547 |     if (!isCreator && !permissions.allowScreenShare && !isScreenSharing) return;
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 631 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 632 |   }, [isScreenSharing]);
+      | ^^^^ Could not preserve existing manual memoization
+  633 |
+  634 |   return {
+  635 |     callState,                        react-hooks/preserve-manual-memoization
+  545:41  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `roomId`, but the source dependencies were [isScreenSharing]. Inferred different dependency than source.
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/hooks/useGuestWebRTC.ts:545:41
+  543 |   }, [availableCameras, currentCameraId, isCameraOn]);
+  544 |
+> 545 |   const toggleScreenShare = useCallback(async () => {
+      |                                         ^^^^^^^^^^^^^
+> 546 |     // Bypass check for host (creator)
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 547 |     if (!isCreator && !permissions.allowScreenShare && !isScreenSharing) return;
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 631 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 632 |   }, [isScreenSharing]);
+      | ^^^^ Could not preserve existing manual memoization
+  633 |
+  634 |   return {
+  635 |     callState,                        react-hooks/preserve-manual-memoization
+  632:6   warning  React Hook useCallback has missing dependencies: 'isCreator', 'permissions.allowScreenShare', 'roomId', and 'socket'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/hooks/useWebRTC.ts
+   14:10  warning  'remoteStream' is assigned a value but never used                                                                                                @typescript-eslint/no-unused-vars
+  469:6   warning  React Hook useEffect has missing dependencies: 'createPeerConnection' and 'initLocalStream'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/saurabhdixit/personal/PersonalVideoChatApp/frontend/src/lib/crypto.ts
+  176:14  warning  'primaryErr' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 74 problems (43 errors, 31 warnings)
+

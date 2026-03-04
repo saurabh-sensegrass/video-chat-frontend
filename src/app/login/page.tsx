@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import {
   generateRSAKeyPair,
   exportPublicKey,
@@ -9,9 +10,6 @@ import {
 } from "@/lib/crypto";
 import { useRouter } from "next/navigation";
 import { Video, Shield } from "lucide-react";
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -87,8 +85,12 @@ export default function LoginPage() {
         }
       }
       */
-    } catch (err: any) {
-      setError(err.message || "Failed to login");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Failed to login");
+      } else {
+        setError("Failed to login");
+      }
     } finally {
       setLoading(false);
     }
@@ -161,19 +163,19 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 pt-6 border-t border-zinc-800 space-y-3">
-          <a
+          <Link
             href="/join-video"
             className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 transition-colors"
           >
             <Video className="w-4 h-4" />
             Create Guest Video Room
-          </a>
-          <a
+          </Link>
+          <Link
             href="/"
             className="w-full flex items-center justify-center gap-2 py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
           >
             ← Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

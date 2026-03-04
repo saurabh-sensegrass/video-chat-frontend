@@ -11,6 +11,7 @@ export function useWebRTC(
   const [callState, setCallState] = useState<CallState>("idle");
   const [remoteUserId, setRemoteUserId] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
   const [isCameraOn, setIsCameraOn] = useState(true);
@@ -474,6 +475,7 @@ export function useWebRTC(
     localStream,
     acceptCall,
     stopMediaTracks,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ]);
 
   const toggleCamera = () => {

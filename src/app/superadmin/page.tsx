@@ -61,6 +61,7 @@ export default function SuperAdminPage() {
     if (profile?.role === "superadmin") {
       fetchAdmins();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   useEffect(() => {
@@ -69,10 +70,12 @@ export default function SuperAdminPage() {
     } else {
       setSelectedAdminUsers([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAdminId]);
 
   const fetchAdmins = async () => {
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -87,21 +90,26 @@ export default function SuperAdminPage() {
         try {
           const body = await res.json();
           errMsg = body.message || body.error || errMsg;
-        } catch (e) {
+        } catch {
           // Fallback if not JSON
         }
         throw new Error(errMsg);
       }
       const data = await res.json();
       setAdmins(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("SuperAdmin Fetch Error:", err);
-      setError(err.message || "Failed to fetch admins");
+      if (err instanceof Error) {
+        setError(err.message || "Failed to fetch admins");
+      } else {
+        setError("Failed to fetch admins");
+      }
     }
   };
 
   const fetchAdminUsers = async (adminId: string) => {
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -114,8 +122,12 @@ export default function SuperAdminPage() {
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setSelectedAdminUsers(data);
-    } catch (err: any) {
-      setError("Failed to fetch admin users: " + err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError("Failed to fetch admin users: " + err.message);
+      } else {
+        setError("Failed to fetch admin users");
+      }
     }
   };
 
@@ -123,7 +135,8 @@ export default function SuperAdminPage() {
     e.preventDefault();
     setError("");
     setSuccessMsg("");
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     setActionLoading(true);
@@ -153,8 +166,8 @@ export default function SuperAdminPage() {
       setNewAdminEmail("");
       setNewAdminPassword("");
       fetchAdmins();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     } finally {
       setActionLoading(false);
     }
@@ -164,7 +177,8 @@ export default function SuperAdminPage() {
     setError("");
     setSuccessMsg("");
 
-    const token = profile?.token || (profile as any)?.accessToken;
+    const token =
+      profile?.token || (profile as { accessToken?: string })?.accessToken;
     if (!token) return;
 
     try {
@@ -182,8 +196,8 @@ export default function SuperAdminPage() {
 
       if (!res.ok) throw new Error("Failed to update status");
       fetchAdmins();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
     }
   };
 
