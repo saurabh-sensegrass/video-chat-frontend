@@ -5,7 +5,7 @@ import { SessionProvider, useSession, signOut } from "next-auth/react";
 type Profile = {
   id: string;
   email: string;
-  role: "admin" | "user";
+  role: "superadmin" | "admin" | "user";
   is_active: boolean;
   publicKey?: string;
   token?: string;
