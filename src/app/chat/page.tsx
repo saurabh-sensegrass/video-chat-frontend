@@ -925,7 +925,18 @@ export default function ChatPage() {
                       <Home className="w-4 h-4 text-zinc-500" />
                       Home
                     </button>
-                    {profile?.role === "admin" && (
+                    {profile?.role === "superadmin" ? (
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          router.push("/superadmin");
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        <Shield className="w-4 h-4 text-indigo-400" />
+                        Super Control Panel
+                      </button>
+                    ) : profile?.role === "admin" ? (
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
@@ -936,7 +947,7 @@ export default function ChatPage() {
                         <Shield className="w-4 h-4 text-zinc-500" />
                         Admin Panel
                       </button>
-                    )}
+                    ) : null}
                     <button
                       onClick={() => {
                         setShowUserMenu(false);

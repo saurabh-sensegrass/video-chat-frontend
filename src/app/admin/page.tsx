@@ -452,6 +452,14 @@ export default function AdminPage() {
                                   toggleUserStatus(user.id, user.is_active)
                                 }
                                 className={`p-2.5 rounded-xl transition-all shadow-md active:scale-95 ${user.is_active ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20" : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20"}`}
+                                aria-label={
+                                  user.is_active
+                                    ? `Deactivate ${user.email}`
+                                    : `Activate ${user.email}`
+                                }
+                                title={
+                                  user.is_active ? "Deactivate" : "Activate"
+                                }
                               >
                                 <Power className="w-4 h-4" />
                               </button>
@@ -491,7 +499,10 @@ export default function AdminPage() {
                       <h3 className="font-black text-white text-lg tracking-tight">
                         Persistent Communication Log
                       </h3>
-                      <p className="text-sm text-zinc-500 mt-1 max-w-md">
+                      <p
+                        id="chat-history-description"
+                        className="text-sm text-zinc-500 mt-1 max-w-md"
+                      >
                         Synchronize all encrypted messages to the central ledger
                         for auditing.
                       </p>
@@ -502,6 +513,8 @@ export default function AdminPage() {
                         className="sr-only peer"
                         checked={saveChatHistory}
                         onChange={toggleSettings}
+                        aria-label="Save chat history"
+                        aria-describedby="chat-history-description"
                       />
                       <div className="w-12 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-zinc-400 after:border-zinc-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 peer-checked:after:bg-white peer-checked:after:border-white" />
                     </label>

@@ -82,11 +82,21 @@ export default function SuperAdminPage() {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        let errMsg = "Failed to fetch admins";
+        try {
+          const body = await res.json();
+          errMsg = body.message || body.error || errMsg;
+        } catch (e) {
+          // Fallback if not JSON
+        }
+        throw new Error(errMsg);
+      }
       const data = await res.json();
       setAdmins(data);
     } catch (err: any) {
-      setError("Failed to fetch admins: " + err.message);
+      console.error("SuperAdmin Fetch Error:", err);
+      setError(err.message || "Failed to fetch admins");
     }
   };
 
@@ -113,10 +123,10 @@ export default function SuperAdminPage() {
     e.preventDefault();
     setError("");
     setSuccessMsg("");
-    setActionLoading(true);
-
     const token = profile?.token || (profile as any)?.accessToken;
     if (!token) return;
+
+    setActionLoading(true);
 
     try {
       const res = await fetch(
