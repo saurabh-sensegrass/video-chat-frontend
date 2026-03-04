@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { UserProfile } from "./types";
 import { Search, User as UserIcon, LogOut, Home } from "lucide-react";
 
@@ -22,6 +23,11 @@ export function ChatSidebar({
   logout,
   router,
 }: ChatSidebarProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredUsers = availableUsers.filter((u) =>
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
   return (
     <div className="w-full md:w-80 lg:w-96 flex flex-col bg-zinc-900/50 backdrop-blur-xl border-r border-zinc-800/80 shrink-0 h-full">
       <div className="p-6 border-b border-zinc-800/50">
@@ -53,13 +59,15 @@ export function ChatSidebar({
           <input
             type="text"
             placeholder="Search conversations..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-sm transition-all placeholder:text-zinc-600"
           />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-        {availableUsers.map((u) => {
+        {filteredUsers.map((u) => {
           const isSelected = targetUser?.id === u.id;
           const isOnline = onlineUsers.includes(u.id);
 
@@ -76,7 +84,7 @@ export function ChatSidebar({
               <div className="relative">
                 <div className="w-12 h-12 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-2xl flex items-center justify-center border border-zinc-700/50 shadow-inner">
                   <span className="text-lg font-bold text-zinc-400 uppercase">
-                    {u.email[0]}
+                    {u.email?.[0] || "?"}
                   </span>
                 </div>
                 {isOnline && (
@@ -88,7 +96,7 @@ export function ChatSidebar({
                   <p
                     className={`font-semibold truncate text-[15px] ${isSelected ? "text-indigo-300" : "text-zinc-200"}`}
                   >
-                    {u.email.split("@")[0]}
+                    {u.email?.split("@")[0] || "Unknown User"}
                   </p>
                 </div>
                 <p className="text-xs text-zinc-500 truncate font-medium">

@@ -274,6 +274,25 @@ export default function ChatPage() {
     }
   }, [callState]);
 
+  const handleSetTargetUser = async (u: UserProfile) => {
+    setTargetUser(u);
+    if (!u.publicKey) {
+      targetPublicKeyRef.current = null;
+      return;
+    }
+
+    try {
+      const key = await importPublicKey(u.publicKey);
+      targetPublicKeyRef.current = key;
+    } catch (err) {
+      console.error("Failed to import public key for user", u.id, err);
+      targetPublicKeyRef.current = null;
+      toast.error(
+        "Security error: Could not verify user identity. Messaging might be unencrypted.",
+      );
+    }
+  };
+
   if (loading || !user)
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
@@ -320,14 +339,7 @@ export default function ChatPage() {
         availableUsers={availableUsers}
         onlineUsers={onlineUsers}
         targetUser={targetUser}
-        setTargetUser={(u) => {
-          setTargetUser(u);
-          if (u.publicKey)
-            importPublicKey(u.publicKey)
-              .then((key) => (targetPublicKeyRef.current = key))
-              .catch(console.error);
-          else targetPublicKeyRef.current = null;
-        }}
+        setTargetUser={handleSetTargetUser}
         user={user}
         logout={logout}
         router={router}

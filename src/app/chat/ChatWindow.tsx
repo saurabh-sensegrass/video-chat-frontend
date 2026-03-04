@@ -166,7 +166,6 @@ export function ChatWindow({
                 );
               })
             )}
-            <div ref={messagesEndRef} />
             {remoteTyping && (
               <div className="flex items-center gap-2 mb-4 animate-in fade-in slide-in-from-left-2">
                 <div className="bg-zinc-800/50 px-3 py-2 rounded-2xl rounded-tl-none border border-zinc-700/30">
@@ -178,6 +177,7 @@ export function ChatWindow({
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
@@ -190,7 +190,7 @@ export function ChatWindow({
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     className="p-2.5 text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/5 rounded-xl transition-all"
                   >
-                    <Smile className="w-5.5 h-5.5" />
+                    <Smile className="w-5 h-5" />
                   </button>
                 </div>
 
