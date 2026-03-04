@@ -31,6 +31,7 @@ export function useWebRTC(
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const endCallRef = useRef<() => void>(() => {});
 
   // STUN ONLY
   const getRTCConfiguration = (): RTCConfiguration => ({
@@ -71,12 +72,17 @@ export function useWebRTC(
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, [socket, remoteUserId, callState, stopMediaTracks]);
 
-  // Cleanup on unmount
+  // Keep endCallRef in sync with the latest endCall implementation
+  useEffect(() => {
+    endCallRef.current = endCall;
+  }, [endCall]);
+
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      endCall();
+      endCallRef.current();
     };
-  }, [endCall]);
+  }, []);
 
   const initLocalStream = async () => {
     try {
@@ -162,7 +168,7 @@ export function useWebRTC(
         pc.connectionState === "failed" ||
         pc.connectionState === "closed"
       ) {
-        endCall();
+        endCallRef.current();
       }
     };
 
@@ -299,7 +305,7 @@ export function useWebRTC(
           setCallState("connected");
           const stream = await initLocalStream();
           if (!stream) {
-            endCall();
+            endCallRef.current();
             return;
           }
 
@@ -454,7 +460,6 @@ export function useWebRTC(
     remoteUserId,
     localStream,
     acceptCall,
-    endCall,
     stopMediaTracks,
   ]);
 

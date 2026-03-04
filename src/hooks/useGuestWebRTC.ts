@@ -10,6 +10,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const endCallRef = useRef<() => void>(() => {});
 
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
@@ -70,12 +71,17 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, [socket, roomId, callState, stopMediaTracks]);
 
-  // Cleanup on unmount
+  // Keep endCallRef in sync with the latest endCall implementation
+  useEffect(() => {
+    endCallRef.current = endCall;
+  }, [endCall]);
+
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      endCall();
+      endCallRef.current();
     };
-  }, [endCall]);
+  }, []);
 
   const initLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
@@ -347,7 +353,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
     socket.on("kicked-out", () => {
       // Logic will be handled in page.tsx via a callback or just end call here
-      endCall();
+      endCallRef.current();
       // We'll use a custom event or state to notify page.tsx for the redirect
       window.dispatchEvent(new CustomEvent("guest-kicked-out"));
     });
@@ -359,15 +365,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       socket.off("media-status-update");
       socket.off("kicked-out");
     };
-  }, [
-    socket,
-    roomId,
-    isMicOn,
-    isCameraOn,
-    isScreenSharing,
-    isCreator,
-    endCall,
-  ]);
+  }, [socket, roomId, isMicOn, isCameraOn, isScreenSharing, isCreator]);
 
   // Sync local status to remote peer
   useEffect(() => {
