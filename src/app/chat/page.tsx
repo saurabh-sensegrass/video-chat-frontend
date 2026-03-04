@@ -38,6 +38,7 @@ import {
   MonitorUp,
   ZoomIn,
   ZoomOut,
+  ChevronLeft,
 } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
@@ -953,13 +954,23 @@ export default function ChatPage() {
       )}
 
       {/* Sidebar for Available Users */}
-      <div className="w-full lg:w-72 h-32 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-800/80 bg-zinc-950/50 flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto shrink-0 z-10 transition-all">
-        <div className="p-4 hidden lg:block border-b border-zinc-800/80 shrink-0">
-          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
-            Your Contacts
+      <div
+        className={`${targetUser ? "hidden lg:flex" : "flex"} w-full lg:w-80 h-full border-r border-zinc-800/80 bg-zinc-950/50 flex-col overflow-y-auto shrink-0 z-10 transition-all shadow-xl`}
+      >
+        <div className="p-6 border-b border-zinc-800/80 flex items-center justify-between shrink-0">
+          <h2 className="text-lg font-bold text-zinc-100 tracking-tight">
+            Messages
           </h2>
+          <div className="lg:hidden">
+            <button
+              onClick={() => setShowUserMenu((prev) => !prev)}
+              className="w-9 h-9 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-sm flex items-center justify-center border border-indigo-500/20"
+            >
+              {profile?.email?.charAt(0).toUpperCase() || "U"}
+            </button>
+          </div>
         </div>
-        <div className="p-2 lg:p-3 flex flex-row lg:flex-col gap-2">
+        <div className="p-2 lg:p-3 flex flex-col gap-1">
           {availableUsers.map((u) => (
             <button
               key={u.id}
@@ -975,7 +986,7 @@ export default function ChatPage() {
                   targetPublicKeyRef.current = null;
                 }
               }}
-              className={`flex items-center gap-3 p-2 sm:p-3 rounded-xl transition-all w-48 lg:w-full shrink-0 text-left border ${targetUser?.id === u.id ? "bg-indigo-500/10 border-indigo-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-zinc-800/50"}`}
+              className={`flex items-center gap-4 p-3 lg:p-4 rounded-2xl transition-all w-full shrink-0 text-left border ${targetUser?.id === u.id ? "bg-indigo-600/10 border-indigo-500/30 shadow-lg" : "bg-transparent border-transparent hover:bg-zinc-900/40 hover:border-zinc-800"}`}
             >
               <div className="relative">
                 <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 font-semibold text-zinc-300 flex items-center justify-center shrink-0 shadow-md">
@@ -1006,10 +1017,21 @@ export default function ChatPage() {
       </div>
 
       {/* Main Persistent Chat Area */}
-      <div className="flex-1 min-h-0 flex flex-col h-full bg-zinc-950 overflow-hidden relative">
+      <div
+        className={`${!targetUser ? "hidden lg:flex" : "flex"} flex-1 min-h-0 flex flex-col h-full bg-zinc-950 overflow-hidden relative shadow-2xl shadow-black/50`}
+      >
         {/* Chat Header */}
-        <header className="h-[72px] lg:h-20 shrink-0 border-b border-zinc-800/80 flex items-center justify-between px-4 lg:px-10 bg-zinc-950/50 backdrop-blur-md z-10 w-full">
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0 overflow-hidden">
+        <header className="h-[72px] lg:h-20 shrink-0 border-b border-zinc-800/80 flex items-center justify-between px-4 lg:px-10 bg-zinc-950/80 backdrop-blur-xl z-10 w-full sticky top-0">
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0 overflow-hidden flex-1">
+            {/* Back Button (Mobile Only) */}
+            <button
+              onClick={() => setTargetUser(null)}
+              className="lg:hidden p-2 -ml-2 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-xl transition-colors"
+              aria-label="Back to contacts"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
             {/* Header Avatar */}
             {targetUser && (
               <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-zinc-800 border border-zinc-700 font-semibold text-zinc-300 flex items-center justify-center shrink-0 shadow-md text-sm sm:text-base">

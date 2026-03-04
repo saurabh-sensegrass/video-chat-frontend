@@ -128,8 +128,14 @@ export default function GuestVideoRoom() {
     // Request camera access first before fully joining
     await initLocalStream();
 
-    // Join room AFTER camera opens
-    socket.emit("join-room", { roomId, userName: userName.trim() });
+    // Check if this user is the host (created the room from /join-video page)
+    const isHost =
+      typeof window !== "undefined"
+        ? localStorage.getItem(`guest_host_${roomId}`) === "true"
+        : false;
+
+    // Join room AFTER camera opens, passing the isHost flag
+    socket.emit("join-room", { roomId, userName: userName.trim(), isHost });
     setIsJoined(true);
   };
 

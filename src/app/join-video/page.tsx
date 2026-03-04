@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Video,
@@ -14,6 +14,23 @@ export default function JoinVideoPage() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
 
+  // Cleanup old host keys from localStorage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const keys = Object.keys(localStorage);
+      const hostKeys = keys.filter((k) => k.startsWith("guest_host_"));
+
+      if (hostKeys.length > 10) {
+        if (hostKeys.length > 50) {
+          hostKeys.forEach((k) => localStorage.removeItem(k));
+        }
+      }
+    } catch (e) {
+      console.error("LocalStorage cleanup failed", e);
+    }
+  }, []);
+
   const createRoom = () => {
     setIsCreating(true);
     // Generate a simple room ID
@@ -21,6 +38,12 @@ export default function JoinVideoPage() {
       crypto.randomUUID().split("-")[0] +
       "-" +
       crypto.randomUUID().split("-")[1];
+
+    // Store host flag in localStorage so we know this user created the room
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`guest_host_${roomId}`, "true");
+    }
+
     router.push(`/join-video/${roomId}`);
   };
 

@@ -18,7 +18,16 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
   const [isRemoteMicOn, setIsRemoteMicOn] = useState(true);
   const [isRemoteCameraOn, setIsRemoteCameraOn] = useState(true);
+  // Check localStorage to see if this user created the room
   const [isCreator, setIsCreator] = useState(false);
+
+  // Initialize and sync isCreator based on roomId and localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(`guest_host_${roomId}`) === "true";
+      setIsCreator(stored);
+    }
+  }, [roomId]);
   const [permissions, setPermissions] = useState({
     allowMic: true,
     allowCamera: true,
@@ -310,12 +319,16 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     };
   }, [socket, roomId, initLocalStream, createPeerConnection, stopMediaTracks]);
 
-  // Track creator status and permissions
+  // Stable socket listener for creator status
   useEffect(() => {
     if (!socket) return;
 
     socket.on("room-creator", () => {
       setIsCreator(true);
+      // Also persist to localStorage in case of reconnects
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`guest_host_${roomId}`, "true");
+      }
     });
 
     socket.on("room-permissions-sync", ({ permissions }) => {
