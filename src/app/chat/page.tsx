@@ -59,6 +59,7 @@ type UserProfile = {
   email: string;
   is_active: boolean;
   lastSeen?: string;
+  publicKey?: string;
 };
 
 // Extracted to prevent chat typing from re-rendering the video/WebRTC hooks excessively (React best practices: rendering-activity / rerender-defer-reads)
@@ -487,9 +488,11 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMsg, setInputMsg] = useState("");
   const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<UserProfile[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [saveHistory, setSaveHistory] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const [isTyping, setIsTyping] = useState(false);
@@ -579,10 +582,12 @@ export default function ChatPage() {
 
         if (res.ok) {
           const data = await res.json();
-          setTargetUser(data.targetUser);
+          setAvailableUsers(data.availableUsers || []);
+          if (data.availableUsers && data.availableUsers.length > 0) {
+            setTargetUser(data.availableUsers[0]);
+            await initCryptoKeys(data.availableUsers[0].publicKey);
+          }
           setSaveHistory(data.saveHistory);
-
-          await initCryptoKeys(data.targetUser?.publicKey);
 
           let msgs = data.messages;
           if (privateKeyRef.current) {
@@ -878,7 +883,21 @@ export default function ChatPage() {
 
   const onEmojiClick = (emojiData: EmojiClickData) => {
     setInputMsg((prev) => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (loading || !user)
     return (
@@ -886,6 +905,34 @@ export default function ChatPage() {
         Loading...
       </div>
     );
+
+  if (
+    (profile?.role as string) === "admin" ||
+    (profile?.role as string) === "superadmin"
+  ) {
+    return (
+      <div className="min-h-[100dvh] bg-zinc-950 flex flex-col items-center justify-center text-zinc-400 p-6 text-center">
+        <Shield className="w-16 h-16 text-red-500/50 mb-6" />
+        <h1 className="text-2xl font-bold text-white mb-2">Chat Disabled</h1>
+        <p className="max-w-md text-zinc-500">
+          The chat feature is strictly reserved for standard users.
+          Administrators cannot participate in messaging.
+        </p>
+        <button
+          onClick={() =>
+            router.push(
+              (profile?.role as string) === "superadmin"
+                ? "/superadmin"
+                : "/admin",
+            )
+          }
+          className="mt-8 px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
 
   const isTargetOnline = targetUser
     ? onlineUsers.includes(targetUser.id)
@@ -904,6 +951,59 @@ export default function ChatPage() {
           onLocalSend={(msg) => setMessages((prev) => [...prev, msg])}
         />
       )}
+
+      {/* Sidebar for Available Users */}
+      <div className="w-full lg:w-72 h-32 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-800/80 bg-zinc-950/50 flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto shrink-0 z-10 transition-all">
+        <div className="p-4 hidden lg:block border-b border-zinc-800/80 shrink-0">
+          <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+            Your Contacts
+          </h2>
+        </div>
+        <div className="p-2 lg:p-3 flex flex-row lg:flex-col gap-2">
+          {availableUsers.map((u) => (
+            <button
+              key={u.id}
+              onClick={() => {
+                setTargetUser(u);
+                if (u.publicKey) {
+                  importPublicKey(u.publicKey)
+                    .then((key) => {
+                      targetPublicKeyRef.current = key;
+                    })
+                    .catch(console.error);
+                } else {
+                  targetPublicKeyRef.current = null;
+                }
+              }}
+              className={`flex items-center gap-3 p-2 sm:p-3 rounded-xl transition-all w-48 lg:w-full shrink-0 text-left border ${targetUser?.id === u.id ? "bg-indigo-500/10 border-indigo-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-zinc-800/50"}`}
+            >
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 font-semibold text-zinc-300 flex items-center justify-center shrink-0 shadow-md">
+                  {u.email.charAt(0).toUpperCase()}
+                </div>
+                <div
+                  className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-zinc-950 rounded-full ${onlineUsers.includes(u.id) ? "bg-green-500" : "bg-zinc-600"}`}
+                ></div>
+              </div>
+              <div className="overflow-hidden flex-1">
+                <p
+                  className={`text-sm font-medium truncate ${targetUser?.id === u.id ? "text-indigo-300" : "text-zinc-200"}`}
+                >
+                  {u.email.split("@")[0]}
+                </p>
+                <p className="text-xs text-zinc-500 truncate">
+                  {onlineUsers.includes(u.id) ? "Online" : "Offline"}
+                </p>
+              </div>
+            </button>
+          ))}
+          {availableUsers.length === 0 && (
+            <div className="text-zinc-500 text-sm text-center p-4">
+              No contacts available.
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Main Persistent Chat Area */}
       <div className="flex-1 min-h-0 flex flex-col h-full bg-zinc-950 overflow-hidden relative">
@@ -971,7 +1071,7 @@ export default function ChatPage() {
                       <Home className="w-4 h-4 text-zinc-500" />
                       Home
                     </button>
-                    {profile?.role === "superadmin" ? (
+                    {(profile?.role as string) === "superadmin" ? (
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
@@ -982,7 +1082,7 @@ export default function ChatPage() {
                         <Shield className="w-4 h-4 text-indigo-400" />
                         Super Control Panel
                       </button>
-                    ) : profile?.role === "admin" ? (
+                    ) : (profile?.role as string) === "admin" ? (
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
@@ -1024,7 +1124,13 @@ export default function ChatPage() {
           )}
 
           {messages
-            .filter((m) => !m.isEphemeral)
+            .filter(
+              (m) =>
+                !m.isEphemeral &&
+                targetUser &&
+                (m.sender_id === targetUser.id ||
+                  m.receiver_id === targetUser.id),
+            )
             .map((msg) => {
               const isMe = msg.sender_id === user.id;
               return (
@@ -1087,7 +1193,7 @@ export default function ChatPage() {
             onSubmit={sendMessage}
             className="relative lg:max-w-4xl mx-auto flex items-center gap-2 w-full"
           >
-            <div className="relative">
+            <div className="relative" ref={emojiPickerRef}>
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}

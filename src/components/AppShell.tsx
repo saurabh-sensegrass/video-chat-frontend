@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeToPush } from "@/lib/notifications";
-import PullToRefresh from "@/components/PullToRefresh";
-
 /**
  * Client wrapper that shows a loading/splash screen while the app hydrates.
  * In standalone (PWA) mode, it shows for a noticeable duration.
@@ -50,16 +48,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const handleRefresh = async () => {
-    // Wait a brief moment for the animation, then reload the page
-    // This provides a "native" feel where pulling down refreshes the entire app state
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    window.location.reload();
-  };
-
   if (!isReady) {
     return <LoadingScreen />;
   }
 
-  return <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>;
+  return children;
 }
