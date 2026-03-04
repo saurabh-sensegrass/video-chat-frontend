@@ -1,8 +1,63 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Message, UserProfile } from "./types";
-import { Send, Smile, Phone, Shield, Check, CheckCheck } from "lucide-react";
+import {
+  Send,
+  Smile,
+  Phone,
+  Shield,
+  Check,
+  CheckCheck,
+  ArrowLeft,
+} from "lucide-react";
+
+const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
+
+/**
+ * Formats a lastSeen date string into a human-readable relative format.
+ * - Today: "Today 04:10 PM"
+ * - Yesterday: "Yesterday 04:10 PM"
+ * - 2-3 days ago: Day name, e.g. "Monday 04:10 PM"
+ * - Older: "02 March 2026 at 04:10 PM"
+ */
+function formatLastSeen(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "Offline";
+
+  const now = new Date();
+
+  // Strip time to compare calendar dates
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor(
+    (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  const timeStr = date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  if (diffDays === 0) {
+    return `Today ${timeStr}`;
+  }
+  if (diffDays === 1) {
+    return `Yesterday ${timeStr}`;
+  }
+  if (diffDays >= 2 && diffDays <= 3) {
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    return `${dayName} ${timeStr}`;
+  }
+
+  // Older than 3 days: "02 March 2026 at 04:10 PM"
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = date.toLocaleDateString("en-US", { month: "long" });
+  const year = date.getFullYear();
+  return `${day} ${month} ${year} at ${timeStr}`;
+}
 
 interface ChatWindowProps {
   messages: Message[];
@@ -18,6 +73,8 @@ interface ChatWindowProps {
   setShowEmojiPicker: (show: boolean) => void;
   emojiPickerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  onEmojiClick: (emojiData: any) => void;
+  onBack: () => void;
 }
 
 export function ChatWindow({
@@ -34,6 +91,8 @@ export function ChatWindow({
   setShowEmojiPicker,
   emojiPickerRef,
   messagesEndRef,
+  onEmojiClick,
+  onBack,
 }: ChatWindowProps) {
   const isOnline = targetUser && onlineUsers.includes(targetUser.id);
 
@@ -42,8 +101,17 @@ export function ChatWindow({
       {targetUser ? (
         <>
           {/* Top Bar */}
-          <div className="h-20 flex items-center justify-between px-6 border-b border-zinc-800/50 bg-zinc-900/40 backdrop-blur-md">
-            <div className="flex items-center gap-4">
+          <div className="h-20 flex items-center justify-between px-4 sm:px-6 border-b border-zinc-800/50 bg-zinc-900/40 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              {/* Back button — visible on small screens only */}
+              <button
+                onClick={onBack}
+                className="md:hidden p-2 -ml-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-all"
+                title="Back to contacts"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+
               <div className="relative">
                 <div className="w-11 h-11 bg-zinc-800 rounded-xl flex items-center justify-center border border-zinc-700/50">
                   <span className="text-lg font-bold text-zinc-400 uppercase">
@@ -55,11 +123,8 @@ export function ChatWindow({
                 )}
               </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-zinc-100 flex items-center gap-2 truncate text-[15px]">
+                <h3 className="font-bold text-zinc-100 truncate text-[15px]">
                   {targetUser.email.split("@")[0]}
-                  <span className="px-1.5 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-bold uppercase rounded border border-green-500/20">
-                    Trusted
-                  </span>
                 </h3>
                 <div className="flex items-center gap-1.5 leading-none">
                   {isOnline ? (
@@ -72,7 +137,7 @@ export function ChatWindow({
                   ) : (
                     <span className="text-xs text-zinc-500 font-medium italic">
                       {targetUser.lastSeen
-                        ? `Last seen ${new Date(targetUser.lastSeen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                        ? `Last seen ${formatLastSeen(targetUser.lastSeen)}`
                         : "Offline"}
                     </span>
                   )}
@@ -88,11 +153,16 @@ export function ChatWindow({
                 </div>
               </div>
               <button
-                onClick={() => initiateCall(targetUser.id)}
-                className="group w-11 h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-all hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:scale-105 active:scale-95 border border-indigo-400/20"
-                title="Start Video Call"
+                onClick={() => isOnline && initiateCall(targetUser.id)}
+                disabled={!isOnline}
+                className={`group w-11 h-11 text-white rounded-xl flex items-center justify-center transition-all border ${
+                  isOnline
+                    ? "bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:scale-105 active:scale-95 border-indigo-400/20"
+                    : "bg-zinc-700 border-zinc-600/30 cursor-not-allowed opacity-50"
+                }`}
+                title={isOnline ? "Start Video Call" : "User is offline"}
               >
-                <Phone className="w-5 h-5 group-hover:animate-shake" />
+                <Phone className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -192,6 +262,17 @@ export function ChatWindow({
                   >
                     <Smile className="w-5 h-5" />
                   </button>
+
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-14 left-0 z-50">
+                      <EmojiPicker
+                        onEmojiClick={onEmojiClick}
+                        theme={"dark" as any}
+                        width={300}
+                        height={400}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <input

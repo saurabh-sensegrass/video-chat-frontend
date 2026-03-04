@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { toast } from "react-hot-toast";
 import { Message } from "./types";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { Socket } from "socket.io-client";
@@ -45,9 +46,11 @@ export function VideoModal({
   const [ephemeralMsg, setEphemeralMsg] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const [remoteVideoZoom, setRemoteVideoZoom] = useState(1);
   const ephemeralEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(ephemeralMessages.length);
 
   const {
     callState,
@@ -74,6 +77,36 @@ export function VideoModal({
   useEffect(() => {
     ephemeralEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [ephemeralMessages]);
+
+  // Detect new incoming ephemeral messages: show toast and set unread badge
+  useEffect(() => {
+    if (ephemeralMessages.length > prevMessageCountRef.current) {
+      const latestMsg = ephemeralMessages[ephemeralMessages.length - 1];
+      // Only notify for messages from the other person
+      if (latestMsg && latestMsg.sender_id !== currentUserId) {
+        if (!showChat) {
+          setHasUnread(true);
+        }
+        toast(latestMsg.message, {
+          icon: "💬",
+          duration: 3000,
+          style: {
+            background: "#18181b",
+            color: "#f4f4f5",
+            border: "1px solid #3f3f46",
+          },
+        });
+      }
+    }
+    prevMessageCountRef.current = ephemeralMessages.length;
+  }, [ephemeralMessages, showChat, currentUserId]);
+
+  // Clear unread badge when chat panel is opened
+  useEffect(() => {
+    if (showChat) {
+      setHasUnread(false);
+    }
+  }, [showChat]);
 
   const sendEphemeralMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -347,9 +380,12 @@ export function VideoModal({
             <div className="hidden xs:block w-px h-6 sm:h-8 bg-zinc-800 mx-0.5 sm:mx-1 shrink-0"></div>
             <button
               onClick={() => setShowChat((prev) => !prev)}
-              className={`w-9 h-9 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center transition-colors ${showChat ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-800 hover:bg-zinc-700 text-white"}`}
+              className={`relative w-9 h-9 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center transition-colors ${showChat ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-800 hover:bg-zinc-700 text-white"}`}
             >
               <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+              {hasUnread && !showChat && (
+                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-zinc-950 animate-pulse" />
+              )}
             </button>
             <button
               onClick={endCall}

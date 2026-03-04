@@ -12,7 +12,7 @@ import {
   importPrivateKey,
 } from "@/lib/crypto";
 import { toast } from "react-hot-toast";
-import { EmojiClickData } from "emoji-picker-react";
+
 import { sendAppNotification } from "@/lib/notifications";
 import { Shield } from "lucide-react";
 
@@ -234,9 +234,52 @@ export default function ChatPage() {
     };
   }, [socket, user, targetUser]);
 
+  /**
+   * Handles input field changes and emits typing/stop-typing events.
+   * Emits 'typing' on first keystroke, then schedules 'stop-typing'
+   * after 2 seconds of inactivity.
+   */
+  const handleInputChange = (value: string) => {
+    setInputMsg(value);
+
+    if (!socket || !targetUser) return;
+
+    // Emit typing event if not already typing
+    if (!isTyping && value.length > 0) {
+      setIsTyping(true);
+      socket.emit("typing", { receiverId: targetUser.id });
+    }
+
+    // Clear previous stop-typing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Schedule stop-typing after 2 seconds of no input
+    if (value.length > 0) {
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        socket.emit("stop-typing", { receiverId: targetUser.id });
+      }, 2000);
+    } else {
+      // Input is empty, stop typing immediately
+      setIsTyping(false);
+      socket.emit("stop-typing", { receiverId: targetUser.id });
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMsg.trim() || !user || !targetUser) return;
+
+    // Stop typing status when a message is sent
+    if (isTyping) {
+      setIsTyping(false);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      socket?.emit("stop-typing", { receiverId: targetUser.id });
+    }
 
     let payloadString = inputMsg;
     if (myPublicKeyRef.current && targetPublicKeyRef.current) {
@@ -322,8 +365,12 @@ export default function ChatPage() {
     );
   }
 
+  const handleEmojiClick = (emojiData: any) => {
+    setInputMsg((prev) => prev + emojiData.emoji);
+  };
+
   return (
-    <div className="fixed inset-0 w-full bg-zinc-950 flex flex-col lg:flex-row overflow-hidden overscroll-none">
+    <div className="fixed inset-0 w-full bg-zinc-950 flex flex-col md:flex-row overflow-hidden overscroll-none">
       {callState !== "idle" && (
         <VideoModal
           webrtc={webrtc}
@@ -335,36 +382,49 @@ export default function ChatPage() {
         />
       )}
 
-      <ChatSidebar
-        availableUsers={availableUsers}
-        onlineUsers={onlineUsers}
-        targetUser={targetUser}
-        setTargetUser={handleSetTargetUser}
-        user={user}
-        logout={logout}
-        router={router}
-      />
+      {/* On mobile: show sidebar when no targetUser selected, hide when chatting */}
+      <div
+        className={`${targetUser ? "hidden md:flex" : "flex"} w-full md:w-80 lg:w-96 flex-col h-full`}
+      >
+        <ChatSidebar
+          availableUsers={availableUsers}
+          onlineUsers={onlineUsers}
+          targetUser={targetUser}
+          setTargetUser={handleSetTargetUser}
+          user={user}
+          logout={logout}
+          router={router}
+        />
+      </div>
 
-      <ChatWindow
-        messages={messages.filter(
-          (m) =>
-            !m.isEphemeral &&
-            targetUser &&
-            (m.sender_id === targetUser.id || m.receiver_id === targetUser.id),
-        )}
-        inputMsg={inputMsg}
-        setInputMsg={setInputMsg}
-        sendMessage={sendMessage}
-        targetUser={targetUser}
-        user={user}
-        onlineUsers={onlineUsers}
-        remoteTyping={remoteTyping}
-        initiateCall={initiateCall}
-        showEmojiPicker={showEmojiPicker}
-        setShowEmojiPicker={setShowEmojiPicker}
-        emojiPickerRef={emojiPickerRef}
-        messagesEndRef={messagesEndRef}
-      />
+      {/* On mobile: show chat window only when a user is selected */}
+      <div
+        className={`${targetUser ? "flex" : "hidden md:flex"} flex-1 flex-col h-full`}
+      >
+        <ChatWindow
+          messages={messages.filter(
+            (m) =>
+              !m.isEphemeral &&
+              targetUser &&
+              (m.sender_id === targetUser.id ||
+                m.receiver_id === targetUser.id),
+          )}
+          inputMsg={inputMsg}
+          setInputMsg={handleInputChange}
+          sendMessage={sendMessage}
+          targetUser={targetUser}
+          user={user}
+          onlineUsers={onlineUsers}
+          remoteTyping={remoteTyping}
+          initiateCall={initiateCall}
+          showEmojiPicker={showEmojiPicker}
+          setShowEmojiPicker={setShowEmojiPicker}
+          emojiPickerRef={emojiPickerRef}
+          messagesEndRef={messagesEndRef}
+          onEmojiClick={handleEmojiClick}
+          onBack={() => setTargetUser(null)}
+        />
+      </div>
 
       <audio ref={messageSoundRef} src="/sounds/message.mp3" preload="auto" />
       <audio
