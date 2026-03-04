@@ -585,16 +585,36 @@ export default function GuestVideoRoom() {
 
         {/* Remote Video (Main) */}
         {callState === "connected" ? (
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className={`w-full h-full transition-all ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "sm:object-cover object-contain"}`}
-            style={{
-              transform: `${isRemoteScreenSharing ? "" : "scaleX(-1) "}scale(${remoteVideoZoom})`, // Mirrored for the remote person unless screen sharing, plus zoom
-              filter: "brightness(1.05) contrast(1.05) saturate(1.05)", // Enhancement filter
-            }}
-          />
+          <>
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className={`w-full h-full transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"} ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "sm:object-cover object-contain"}`}
+              style={{
+                transform: `${isRemoteScreenSharing ? "" : "scaleX(-1) "}scale(${remoteVideoZoom})`, // Mirrored for the remote person unless screen sharing, plus zoom
+                filter: "brightness(1.05) contrast(1.05) saturate(1.05)", // Enhancement filter
+              }}
+            />
+            {!isRemoteCameraOn && !isRemoteScreenSharing && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-0 animate-in fade-in duration-300">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-zinc-800 rounded-full flex items-center justify-center shadow-xl shadow-black/50 mb-6 border-4 border-zinc-700/50">
+                  <VideoOff className="w-10 h-10 sm:w-14 sm:h-14 text-zinc-500" />
+                </div>
+                <p className="text-lg sm:text-xl font-medium text-zinc-400">
+                  Camera is turned off
+                </p>
+                {!isRemoteMicOn && (
+                  <div className="mt-4 flex items-center text-red-500 bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20">
+                    <MicOff className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">
+                      Microphone muted
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 p-6 text-center">
             <div className="w-24 h-24 bg-zinc-800/80 rounded-full flex items-center justify-center mb-6 border border-zinc-700/50">
@@ -758,7 +778,7 @@ export default function GuestVideoRoom() {
             }}
             className={`w-10 sm:w-12 h-10 sm:h-12 shrink-0 rounded-full flex items-center justify-center transition-colors relative ${showChat ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-800 hover:bg-zinc-700 text-white"}`}
           >
-            <Moon className="w-4 sm:w-5 h-4 sm:h-5" />
+            <MessageSquare className="w-4 sm:w-5 h-4 sm:h-5" />
             {!showChat && messages.length > 0 && (
               <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-zinc-950"></span>
             )}

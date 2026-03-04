@@ -8,7 +8,15 @@ self.addEventListener("activate", (event) => {
 
 // Handle Web Push event from Backend
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    console.error("Push event data is not JSON:", e);
+    // Fallback if data is raw string
+    data = { body: event.data ? event.data.text() : "New message" };
+  }
+
   const title = data.title || "CommSphere";
   const body = data.body || "New notification";
 

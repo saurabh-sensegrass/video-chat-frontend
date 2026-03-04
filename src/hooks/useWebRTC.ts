@@ -15,6 +15,14 @@ export function useWebRTC(
 
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
+  const [isRemoteCameraOn, setIsRemoteCameraOn] = useState(true);
+  const [isRemoteMicOn, setIsRemoteMicOn] = useState(true);
+
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>(
+    [],
+  );
+  const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -54,10 +62,46 @@ export function useWebRTC(
 
   const initLocalStream = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      let videoDevices = devices.filter(
+        (device) => device.kind === "videoinput",
+      );
+
+      const constraints: MediaStreamConstraints = {
+        video: currentCameraId
+          ? { deviceId: { exact: currentCameraId } }
+          : true,
         audio: true,
-      });
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      if (videoDevices.length === 0 || !videoDevices[0].label) {
+        const newDevices = await navigator.mediaDevices.enumerateDevices();
+        videoDevices = newDevices.filter(
+          (device) => device.kind === "videoinput",
+        );
+      }
+
+      setAvailableCameras(videoDevices);
+
+      const currentTrack = stream.getVideoTracks()[0];
+      if (currentTrack) {
+        const activeDevice = videoDevices.find(
+          (d) =>
+            d.label === currentTrack.label ||
+            d.deviceId === currentTrack.getSettings()?.deviceId,
+        );
+        if (activeDevice) {
+          setCurrentCameraId(activeDevice.deviceId);
+        } else if (videoDevices.length > 0) {
+          setCurrentCameraId(videoDevices[0].deviceId);
+        }
+
+        const facingMode = currentTrack.getSettings()?.facingMode;
+        setIsFrontCamera(facingMode !== "environment");
+      }
+
       localStreamRef.current = stream;
       setLocalStream(stream);
       if (localVideoRef.current) {
@@ -66,7 +110,6 @@ export function useWebRTC(
       return stream;
     } catch (err) {
       console.error("Error accessing media devices:", err);
-      // Fallback or alert would go here in a full app
       return null;
     }
   };
@@ -164,6 +207,58 @@ export function useWebRTC(
     setRemoteUserId(null);
   };
 
+  const switchCamera = async () => {
+    if (availableCameras.length < 2 || !localStreamRef.current) return;
+    try {
+      const currentIndex = availableCameras.findIndex(
+        (c) => c.deviceId === currentCameraId,
+      );
+      const nextIndex = (currentIndex + 1) % availableCameras.length;
+      const nextCamera = availableCameras[nextIndex];
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: nextCamera.deviceId } },
+        audio: isMicOn,
+      });
+
+      const newVideoTrack = stream.getVideoTracks()[0];
+
+      if (peerConnectionRef.current) {
+        const senders = peerConnectionRef.current.getSenders();
+        const videoSender = senders.find(
+          (s) => s.track && s.track.kind === "video",
+        );
+        if (videoSender) {
+          await videoSender.replaceTrack(newVideoTrack);
+        }
+      }
+
+      setLocalStream((prev) => {
+        if (prev) {
+          prev.getVideoTracks().forEach((track) => track.stop());
+          prev.removeTrack(prev.getVideoTracks()[0]);
+          prev.addTrack(newVideoTrack);
+        }
+        return prev;
+      });
+
+      localStreamRef.current = localStream;
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+
+      setCurrentCameraId(nextCamera.deviceId);
+      const facingMode = newVideoTrack.getSettings()?.facingMode;
+      setIsFrontCamera(facingMode !== "environment");
+
+      if (!isCameraOn) {
+        newVideoTrack.enabled = false;
+      }
+    } catch (error) {
+      console.error("Error switching cameras:", error);
+    }
+  };
+
   // Listeners
   useEffect(() => {
     if (!socket || !currentUserId) return;
@@ -254,10 +349,22 @@ export function useWebRTC(
         answer: RTCSessionDescriptionInit;
         senderId: string;
       }) => {
-        if (peerConnectionRef.current && remoteUserId === senderId) {
-          await peerConnectionRef.current.setRemoteDescription(
-            new RTCSessionDescription(answer),
-          );
+        if (callState === "connected" && remoteUserId === senderId) {
+          if (peerConnectionRef.current) {
+            await peerConnectionRef.current.setRemoteDescription(
+              new RTCSessionDescription(answer),
+            );
+          }
+        }
+      },
+    );
+
+    socket.on(
+      "webrtc-media-toggle",
+      ({ isCameraOn: rCam, isMicOn: rMic, senderId }) => {
+        if (callState === "connected" && remoteUserId === senderId) {
+          if (rCam !== undefined) setIsRemoteCameraOn(rCam);
+          if (rMic !== undefined) setIsRemoteMicOn(rMic);
         }
       },
     );
@@ -315,40 +422,62 @@ export function useWebRTC(
     };
   }, [
     socket,
-    callState,
     currentUserId,
+    callState,
     remoteUserId,
-    stopMediaTracks,
+    localStream,
+    acceptCall,
     endCall,
+    stopMediaTracks,
   ]);
 
-  const toggleCamera = useCallback(() => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
+  const toggleCamera = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current
+        .getTracks()
+        .find((track) => track.kind === "video");
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsCameraOn(videoTrack.enabled);
+        if (socket && remoteUserId) {
+          socket.emit("webrtc-media-toggle", {
+            receiverId: remoteUserId,
+            isCameraOn: videoTrack.enabled,
+          });
+        }
       }
     }
-  }, [localStream]);
+  };
 
-  const toggleMic = useCallback(() => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current
+        .getTracks()
+        .find((track) => track.kind === "audio");
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMicOn(audioTrack.enabled);
+        if (socket && remoteUserId) {
+          socket.emit("webrtc-media-toggle", {
+            receiverId: remoteUserId,
+            isMicOn: audioTrack.enabled,
+          });
+        }
       }
     }
-  }, [localStream]);
+  };
 
   return {
     callState,
-    remoteUserId,
     localVideoRef,
     remoteVideoRef,
+    remoteUserId,
     isCameraOn,
     isMicOn,
+    isRemoteCameraOn,
+    isRemoteMicOn,
+    availableCameras,
+    isFrontCamera,
     initiateCall,
     acceptCall,
     rejectCall,
@@ -356,5 +485,6 @@ export function useWebRTC(
     endCall,
     toggleCamera,
     toggleMic,
+    switchCamera,
   };
 }

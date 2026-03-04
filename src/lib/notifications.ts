@@ -86,17 +86,36 @@ export async function subscribeToPush(token: string) {
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
 
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/push/vapid-public-key`,
+    );
+    if (!response.ok) throw new Error("Failed to fetch VAPID key");
+
+    const { publicKey } = await response.json();
+    const applicationServerKey = urlBase64ToUint8Array(publicKey);
+
+    // If we have an existing subscription, check if VAPID keys match
+    // If not, we MUST re-subscribe with the new key
+    if (subscription) {
+      const currentKey = subscription.options.applicationServerKey;
+      if (currentKey) {
+        const currentKeyBase64 = btoa(
+          String.fromCharCode(...new Uint8Array(currentKey)),
+        )
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+
+        if (currentKeyBase64 !== publicKey) {
+          console.log("VAPID key changed, re-subscribing...");
+          await subscription.unsubscribe();
+          subscription = null;
+        }
+      }
+    }
+
     if (!subscription) {
-      // 1. Fetch VAPID public key from backend
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/push/vapid-public-key`,
-      );
-      if (!response.ok) throw new Error("Failed to fetch VAPID key");
-
-      const { publicKey } = await response.json();
-      const applicationServerKey = urlBase64ToUint8Array(publicKey);
-
-      // 2. Subscribe to push manager
+      // Subscribe to push manager
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,

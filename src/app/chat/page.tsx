@@ -32,6 +32,7 @@ import {
   LogOut,
   Home,
   Shield,
+  RefreshCcw,
 } from "lucide-react";
 import type { Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
@@ -84,12 +85,16 @@ function VideoModal({
     remoteVideoRef,
     isCameraOn,
     isMicOn,
+    isRemoteCameraOn,
+    isRemoteMicOn,
+    availableCameras,
     acceptCall,
     rejectCall,
     cancelCall,
     endCall,
     toggleCamera,
     toggleMic,
+    switchCamera,
   } = webrtc;
 
   useEffect(() => {
@@ -162,25 +167,45 @@ function VideoModal({
         </button>
         {/* Remote Video (Main) */}
         {callState === "connected" ? (
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover transition-all"
-            style={{
-              filter:
-                filter === "grayscale"
-                  ? "grayscale(100%) brightness(1.15)"
-                  : filter === "sepia"
-                    ? "sepia(100%) brightness(1.15)"
-                    : filter === "brightness"
-                      ? "brightness(150%)"
-                      : filter === "contrast"
-                        ? "contrast(150%) brightness(1.15)"
-                        : "brightness(1.15)",
-              transform: "scaleX(-1)", // Mirrored for the remote person
-            }}
-          />
+          <>
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className={`w-full h-full object-cover transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"}`}
+              style={{
+                filter:
+                  filter === "grayscale"
+                    ? "grayscale(100%) brightness(1.15)"
+                    : filter === "sepia"
+                      ? "sepia(100%) brightness(1.15)"
+                      : filter === "brightness"
+                        ? "brightness(150%)"
+                        : filter === "contrast"
+                          ? "contrast(150%) brightness(1.15)"
+                          : "brightness(1.15)",
+                transform: "scaleX(-1)", // Mirrored for the remote person
+              }}
+            />
+            {!isRemoteCameraOn && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-0">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-zinc-800 rounded-full flex items-center justify-center shadow-xl shadow-black/50 mb-6 border-4 border-zinc-700/50">
+                  <VideoOff className="w-10 h-10 sm:w-14 sm:h-14 text-zinc-500" />
+                </div>
+                <p className="text-lg sm:text-xl font-medium text-zinc-400">
+                  Camera is turned off
+                </p>
+                {!isRemoteMicOn && (
+                  <div className="mt-4 flex items-center text-red-400 bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20">
+                    <MicOff className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">
+                      Microphone muted
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500">
             {callState === "calling" ? (
@@ -264,6 +289,13 @@ function VideoModal({
               ) : (
                 <VideoOff className="w-5 h-5" />
               )}
+            </button>
+            <button
+              onClick={switchCamera}
+              className="w-10 sm:w-12 h-10 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex shrink-0 items-center justify-center text-white transition-colors"
+              title="Switch Camera"
+            >
+              <RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />
             </button>
             <div className="hidden sm:block w-px h-8 bg-zinc-800 mx-1 sm:mx-2 shrink-0"></div>
             <div className="relative group shrink-0">
