@@ -8,6 +8,7 @@
   "background_color": "#09090b",
   "theme_color": "#6366f1",
   "orientation": "portrait",
+  "gcm_sender_id": "103953800507",
   "categories": ["communication", "social"],
   "icons": [
     {

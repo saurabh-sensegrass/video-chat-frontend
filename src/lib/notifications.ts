@@ -114,6 +114,7 @@ export async function subscribeToPush(token: string) {
       }
     }
 
+    console.debug("Subscribing with Public Key:", publicKey);
     if (!subscription) {
       // Subscribe to push manager
       subscription = await registration.pushManager.subscribe({
@@ -123,6 +124,7 @@ export async function subscribeToPush(token: string) {
     }
 
     // 3. Send subscription to our backend
+    console.debug("Sending subscription to backend...");
     const subResponse = await fetch(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/push/subscribe`,
       {
@@ -136,13 +138,20 @@ export async function subscribeToPush(token: string) {
     );
 
     if (!subResponse.ok) {
-      throw new Error(`Backend subscription failed: ${subResponse.statusText}`);
+      const errorText = await subResponse.text();
+      throw new Error(
+        `Backend subscription failed: ${subResponse.statusText} (${subResponse.status}). Details: ${errorText}`,
+      );
     }
 
     console.log("Successfully subscribed to push notifications");
     return true;
   } catch (err) {
-    console.error("Error subscribing to push:", err);
+    console.error("Error subscribing to push notifications:", {
+      error: err,
+      message: err instanceof Error ? err.message : String(err),
+      name: err instanceof Error ? err.name : "UnknownError",
+    });
     return false;
   }
 }
