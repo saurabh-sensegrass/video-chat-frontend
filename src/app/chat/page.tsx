@@ -158,8 +158,19 @@ export default function ChatPage() {
   }, [user]);
 
   useEffect(() => {
+    // Scroll smoothly for new messages
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    // When switching users, scroll to bottom immediately
+    if (targetUser) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [targetUser]);
 
   useEffect(() => {
     if (!socket || !user) return;
