@@ -86,16 +86,16 @@ export function VideoModal({
       if (latestMsg && latestMsg.sender_id !== currentUserId) {
         if (!showChat) {
           setHasUnread(true);
+          toast(latestMsg.message, {
+            icon: "💬",
+            duration: 3000,
+            style: {
+              background: "#18181b",
+              color: "#f4f4f5",
+              border: "1px solid #3f3f46",
+            },
+          });
         }
-        toast(latestMsg.message, {
-          icon: "💬",
-          duration: 3000,
-          style: {
-            background: "#18181b",
-            color: "#f4f4f5",
-            border: "1px solid #3f3f46",
-          },
-        });
       }
     }
     prevMessageCountRef.current = ephemeralMessages.length;

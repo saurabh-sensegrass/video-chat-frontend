@@ -96,6 +96,23 @@ export function ChatWindow({
 }: ChatWindowProps) {
   const isOnline = targetUser && onlineUsers.includes(targetUser.id);
 
+  // Close emoji picker on outside click
+  React.useEffect(() => {
+    if (!showEmojiPicker) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojiPicker, emojiPickerRef, setShowEmojiPicker]);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-zinc-950/20">
       {targetUser ? (
@@ -268,6 +285,7 @@ export function ChatWindow({
                       <EmojiPicker
                         onEmojiClick={onEmojiClick}
                         theme={"dark" as any}
+                        autoFocusSearch={false}
                         width={300}
                         height={400}
                       />

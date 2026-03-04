@@ -37,6 +37,7 @@ export default function ChatPage() {
 
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const targetUserRef = useRef<UserProfile | null>(null);
   const [remoteTyping, setRemoteTyping] = useState(false);
 
   // E2EE Keys
@@ -234,6 +235,24 @@ export default function ChatPage() {
     };
   }, [socket, user, targetUser]);
 
+  // Keep targetUserRef in sync for use in timeout closures
+  useEffect(() => {
+    targetUserRef.current = targetUser;
+  }, [targetUser]);
+
+  // Cleanup typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (isTyping && socket && targetUserRef.current) {
+        socket.emit("stop-typing", { receiverId: targetUserRef.current.id });
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /**
    * Handles input field changes and emits typing/stop-typing events.
    * Emits 'typing' on first keystroke, then schedules 'stop-typing'
@@ -259,7 +278,9 @@ export default function ChatPage() {
     if (value.length > 0) {
       typingTimeoutRef.current = setTimeout(() => {
         setIsTyping(false);
-        socket.emit("stop-typing", { receiverId: targetUser.id });
+        if (targetUserRef.current) {
+          socket.emit("stop-typing", { receiverId: targetUserRef.current.id });
+        }
       }, 2000);
     } else {
       // Input is empty, stop typing immediately
@@ -367,6 +388,7 @@ export default function ChatPage() {
 
   const handleEmojiClick = (emojiData: any) => {
     setInputMsg((prev) => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
   };
 
   return (

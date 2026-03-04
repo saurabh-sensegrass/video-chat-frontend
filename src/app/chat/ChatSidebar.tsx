@@ -41,7 +41,8 @@ export function ChatSidebar({
                 Messages
               </h2>
               <p className="text-xs text-zinc-500 font-medium">
-                {onlineUsers.length} users online
+                {onlineUsers.filter((id) => id !== user?.id).length} users
+                online
               </p>
             </div>
           </div>
@@ -61,7 +62,7 @@ export function ChatSidebar({
             placeholder="Search conversations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-sm transition-all placeholder:text-zinc-600"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-sm text-zinc-100 transition-all placeholder:text-zinc-600"
           />
         </div>
       </div>
