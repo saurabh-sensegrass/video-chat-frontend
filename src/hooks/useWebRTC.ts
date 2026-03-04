@@ -71,6 +71,13 @@ export function useWebRTC(
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, [socket, remoteUserId, callState, stopMediaTracks]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      endCall();
+    };
+  }, [endCall]);
+
   const initLocalStream = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();

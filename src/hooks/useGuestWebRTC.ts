@@ -49,6 +49,11 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       socket.emit("webrtc-call-end", { roomId });
     }
 
+    if (screenTrackRef.current) {
+      screenTrackRef.current.stop();
+      screenTrackRef.current = null;
+    }
+
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
@@ -58,10 +63,19 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     localStreamRef.current = null;
     setRemoteStream(null);
     setCallState("idle");
+    setIsScreenSharing(false);
+    setIsRemoteScreenSharing(false);
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, [socket, roomId, callState, stopMediaTracks]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      endCall();
+    };
+  }, [endCall]);
 
   const initLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
