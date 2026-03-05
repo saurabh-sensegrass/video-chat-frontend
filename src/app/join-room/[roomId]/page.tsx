@@ -154,7 +154,7 @@ export default function GuestVideoRoom() {
         icon: "🚫",
         duration: 5000,
       });
-      router.push("/join-video");
+      router.push("/join-room");
     };
 
     const handleHostDisconnected = () => {
@@ -167,7 +167,7 @@ export default function GuestVideoRoom() {
         "The room host has left. The call is ending.",
       );
       setTimeout(() => {
-        router.push("/join-video");
+        router.push("/join-room");
       }, 2000);
     };
 
@@ -302,7 +302,7 @@ export default function GuestVideoRoom() {
     if (socket) {
       socket.disconnect();
     }
-    router.push("/join-video");
+    router.push("/join-room");
   };
 
   // 5-Minute Inactivity Timeout
@@ -399,7 +399,7 @@ export default function GuestVideoRoom() {
           This room already has 2 participants and cannot accept more guests.
         </p>
         <button
-          onClick={() => router.push("/join-video")}
+          onClick={() => router.push("/join-room")}
           className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"
         >
           Create New Room

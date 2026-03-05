@@ -164,7 +164,7 @@ export default function LoginPage() {
 
         <div className="mt-6 pt-6 border-t border-zinc-800 space-y-3">
           <Link
-            href="/join-video"
+            href="/join-room"
             className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 transition-colors"
           >
             <Video className="w-4 h-4" />

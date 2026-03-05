@@ -276,7 +276,7 @@ export default function HomePage() {
                   Sign In
                 </Link>
                 <Link
-                  href="/join-video"
+                  href="/join-room"
                   className="px-3 py-2 sm:px-5 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-sm font-semibold rounded-lg sm:rounded-xl transition-colors shadow-lg shadow-indigo-600/20 whitespace-nowrap"
                 >
                   <span className="hidden sm:inline">Guest Video Room</span>
@@ -314,7 +314,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/join-video"
+              href="/join-room"
               className="group flex items-center gap-2 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-2xl transition-all shadow-xl shadow-indigo-600/20 hover:shadow-indigo-500/30 hover:scale-[1.02]"
             >
               <Users className="w-5 h-5" />
@@ -441,7 +441,7 @@ export default function HomePage() {
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-3xl p-8 sm:p-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Link
-              href="/join-video"
+              href="/join-room"
               className="group flex flex-col items-center text-center p-6 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-2xl border border-zinc-800/50 hover:border-zinc-700/50 transition-all"
             >
               <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -482,7 +482,7 @@ export default function HomePage() {
             )}
 
             <Link
-              href={isLoggedIn ? "/chat" : "/join-video"}
+              href={isLoggedIn ? "/chat" : "/join-room"}
               className="group flex flex-col items-center text-center p-6 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-2xl border border-zinc-800/50 hover:border-zinc-700/50 transition-all"
             >
               <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">

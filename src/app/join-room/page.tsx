@@ -53,7 +53,7 @@ export default function JoinVideoPage() {
       // without being sent back for verification.
       sessionStorage.setItem(`host_token_${roomId}`, hostToken);
 
-      router.push(`/join-video/${roomId}`);
+      router.push(`/join-room/${roomId}`);
     } catch (err) {
       console.error("Failed to create room:", err);
       setIsCreating(false);
