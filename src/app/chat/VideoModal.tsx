@@ -156,7 +156,7 @@ export function VideoModal({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 bg-black p-2 sm:p-4 md:p-8 flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-8 backdrop-blur-md overscroll-none h-[100dvh]"
+      className="fixed inset-0 z-[150] bg-black p-2 sm:p-4 md:p-8 flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-8 backdrop-blur-md overscroll-none h-[100dvh]"
     >
       <div className="flex-1 flex flex-col min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden relative bg-zinc-900 border border-zinc-800">
         <button
