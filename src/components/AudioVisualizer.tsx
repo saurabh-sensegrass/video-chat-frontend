@@ -61,6 +61,9 @@ export function AudioVisualizer({
     let ctx: AudioContext;
     try {
       ctx = new AudioContext();
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(console.error);
+      }
     } catch {
       return;
     }

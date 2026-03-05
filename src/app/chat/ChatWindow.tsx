@@ -146,7 +146,7 @@ export function ChatWindow({
       {targetUser ? (
         <>
           {/* Top Bar */}
-          <div className="h-20 flex items-center justify-between px-4 sm:px-6 border-b border-zinc-800/50 bg-zinc-900/40 backdrop-blur-md">
+          <div className="h-20 relative z-50 flex items-center justify-between px-4 sm:px-6 border-b border-zinc-800/50 bg-zinc-900/40 backdrop-blur-md">
             <div className="flex items-center gap-3">
               {/* Back button — visible on small screens only */}
               <button

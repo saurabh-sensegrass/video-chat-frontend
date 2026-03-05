@@ -687,7 +687,7 @@ export default function GuestVideoRoom() {
             <span className="truncate max-w-[60px] sm:max-w-[80px]">
               You ({userName})
             </span>
-            {isCameraOn && (
+            {!!localStream && (
               <div className="ml-1">
                 <AudioVisualizer
                   stream={localStream}
