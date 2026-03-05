@@ -32,7 +32,7 @@ export default function ChatRoomPage() {
   }, [availableUsers, targetUser, router]);
 
   const handleEmojiClick = (emojiData: any) => {
-    setInputMsg(inputMsg + emojiData.emoji);
+    setInputMsg((prev) => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
 

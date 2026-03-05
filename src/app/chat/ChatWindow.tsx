@@ -141,6 +141,21 @@ export function ChatWindow({
     initiateCall(targetUser.id, callType);
   };
 
+  useEffect(() => {
+    // Scroll smoothly for new messages
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, messagesEndRef]);
+
+  useEffect(() => {
+    // When switching users or initially mounting, scroll to bottom immediately
+    if (targetUser) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [targetUser, messagesEndRef]);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-zinc-950/20">
       {targetUser ? (

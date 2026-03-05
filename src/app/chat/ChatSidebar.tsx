@@ -13,6 +13,7 @@ interface ChatSidebarProps {
   user: any;
   logout: () => void;
   router: any;
+  isLoadingUsers: boolean;
 }
 
 export function ChatSidebar({
@@ -24,6 +25,7 @@ export function ChatSidebar({
   user,
   logout,
   router,
+  isLoadingUsers,
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -72,51 +74,72 @@ export function ChatSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-        {filteredUsers.map((u) => {
-          const isSelected = targetUser?.id === u.id;
-          const isOnline = onlineUsers.includes(u.id);
-
-          return (
-            <button
-              key={u.id}
-              onClick={() => setTargetUser(u)}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative ${
-                isSelected
-                  ? "bg-indigo-600/10 border border-indigo-500/30 shadow-lg shadow-indigo-500/5"
-                  : "hover:bg-zinc-800/50 border border-transparent"
-              }`}
+        {isLoadingUsers ? (
+          // Skeleton Loader
+          Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={`skeleton-${i}`}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl bg-zinc-800/20 border border-transparent animate-pulse"
             >
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-2xl flex items-center justify-center border border-zinc-700/50 shadow-inner">
-                  <span className="text-lg font-bold text-zinc-400 uppercase">
-                    {u.email?.[0] || "?"}
-                  </span>
-                </div>
-                {isOnline && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-4 border-zinc-900 rounded-full shadow-sm"></div>
-                )}
+              <div className="w-12 h-12 bg-zinc-800 rounded-2xl shrink-0"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-zinc-800 rounded w-2/3"></div>
+                <div className="h-3 bg-zinc-800/50 rounded w-1/3"></div>
               </div>
-              <div className="flex-1 text-left min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <p
-                    className={`font-semibold truncate text-[15px] ${isSelected ? "text-indigo-300" : "text-zinc-200"}`}
-                  >
-                    {u.email?.split("@")[0] || "Unknown User"}
+            </div>
+          ))
+        ) : filteredUsers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-zinc-500 opacity-80 pt-10">
+            <UserIcon className="w-10 h-10 mb-4 opacity-50" />
+            <p className="text-sm">No users found</p>
+          </div>
+        ) : (
+          filteredUsers.map((u) => {
+            const isSelected = targetUser?.id === u.id;
+            const isOnline = onlineUsers.includes(u.id);
+
+            return (
+              <button
+                key={u.id}
+                onClick={() => setTargetUser(u)}
+                className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative ${
+                  isSelected
+                    ? "bg-indigo-600/10 border border-indigo-500/30 shadow-lg shadow-indigo-500/5"
+                    : "hover:bg-zinc-800/50 border border-transparent"
+                }`}
+              >
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-2xl flex items-center justify-center border border-zinc-700/50 shadow-inner">
+                    <span className="text-lg font-bold text-zinc-400 uppercase">
+                      {u.email?.[0] || "?"}
+                    </span>
+                  </div>
+                  {isOnline && (
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-4 border-zinc-900 rounded-full shadow-sm"></div>
+                  )}
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p
+                      className={`font-semibold truncate text-[15px] ${isSelected ? "text-indigo-300" : "text-zinc-200"}`}
+                    >
+                      {u.email?.split("@")[0] || "Unknown User"}
+                    </p>
+                  </div>
+                  <p className="text-xs text-zinc-500 truncate font-medium">
+                    {isOnline ? "Active now" : "Offline"}
                   </p>
                 </div>
-                <p className="text-xs text-zinc-500 truncate font-medium">
-                  {isOnline ? "Active now" : "Offline"}
-                </p>
-              </div>
-              {unreadUserIds.includes(u.id) && !isSelected && (
-                <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-500/40 animate-pulse"></div>
-              )}
-              {isSelected && (
-                <div className="w-1.5 h-8 bg-indigo-500 rounded-full absolute left-0"></div>
-              )}
-            </button>
-          );
-        })}
+                {unreadUserIds.includes(u.id) && !isSelected && (
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-500/40 animate-pulse"></div>
+                )}
+                {isSelected && (
+                  <div className="w-1.5 h-8 bg-indigo-500 rounded-full absolute left-0"></div>
+                )}
+              </button>
+            );
+          })
+        )}
       </div>
 
       <div className="p-4 border-t border-zinc-800/50 bg-zinc-900/40">

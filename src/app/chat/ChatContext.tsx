@@ -21,11 +21,23 @@ import { sendAppNotification } from "@/lib/notifications";
 import { Message, UserProfile } from "./types";
 import { useParams, useRouter } from "next/navigation";
 
+const isEncryptedMessage = (text: string) => {
+  if (!text) return false;
+  try {
+    const parsed = JSON.parse(text);
+    return (
+      typeof parsed === "object" && parsed !== null && "encryptedData" in parsed
+    );
+  } catch {
+    return false;
+  }
+};
+
 interface ChatContextType {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   inputMsg: string;
-  setInputMsg: (value: string) => void;
+  setInputMsg: React.Dispatch<React.SetStateAction<string>>;
   targetUser: UserProfile | null;
   availableUsers: UserProfile[];
   onlineUsers: string[];
@@ -49,6 +61,7 @@ interface ChatContextType {
   user: any;
   socket: any;
   loading: boolean;
+  isLoadingUsers: boolean;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -70,6 +83,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMsg, setInputMsg] = useState("");
   const [availableUsers, setAvailableUsers] = useState<UserProfile[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [saveHistory, setSaveHistory] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -144,15 +158,19 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle targetUser public key import and unread clear
   useEffect(() => {
+    let isAborted = false;
+
     if (targetUser) {
       setUnreadUserIds((prev) => prev.filter((id) => id !== targetUser.id));
 
       if (targetUser.publicKey) {
         importPublicKey(targetUser.publicKey)
           .then((key) => {
+            if (isAborted) return;
             targetPublicKeyRef.current = key;
           })
           .catch((err) => {
+            if (isAborted) return;
             console.error(
               "Failed to import public key for user",
               targetUser.id,
@@ -169,6 +187,10 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       targetPublicKeyRef.current = null;
     }
+
+    return () => {
+      isAborted = true;
+    };
   }, [targetUser]);
 
   // Initialization & Data Fetching
@@ -195,6 +217,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       const token = user.token || (user as any).accessToken;
       if (!token) return;
 
+      await initCryptoKeys();
+
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"}/api/chat/init`,
@@ -208,35 +232,33 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           setAvailableUsers(data.availableUsers || []);
 
           let msgs = data.messages || [];
-          if (user?.privateKey) {
-            const privateKey = await importPrivateKey(user.privateKey);
+          if (privateKeyRef.current) {
             msgs = await Promise.all(
               msgs.map(async (m: Message) => {
-                if (m.message?.includes("encryptedData")) {
+                if (isEncryptedMessage(m.message)) {
                   try {
                     const decryptedText = await decryptE2EEMessage(
                       m.message,
-                      privateKey,
+                      privateKeyRef.current!,
                       m.sender_id === user.id,
                     );
                     return { ...m, message: decryptedText };
-                  } catch {
+                  } catch (err) {
+                    console.error("Failed to decrypt initial message:", err);
                     return m;
                   }
                 }
                 return m;
               }),
             );
-            privateKeyRef.current = privateKey;
-          }
-          if (user?.publicKey) {
-            myPublicKeyRef.current = await importPublicKey(user.publicKey);
           }
           setMessages(msgs);
           setSaveHistory(data.saveHistory);
         }
       } catch (e) {
         console.error("Failed fetching chat initialization data", e);
+      } finally {
+        setIsLoadingUsers(false);
       }
     };
 
@@ -249,12 +271,17 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
     const handleMessage = async (msg: Message) => {
       let decryptedText = msg.message;
-      if (msg.message.includes("encryptedData") && privateKeyRef.current) {
-        decryptedText = await decryptE2EEMessage(
-          msg.message,
-          privateKeyRef.current,
-          msg.sender_id === user.id,
-        );
+      if (isEncryptedMessage(msg.message) && privateKeyRef.current) {
+        try {
+          decryptedText = await decryptE2EEMessage(
+            msg.message,
+            privateKeyRef.current,
+            msg.sender_id === user.id,
+          );
+        } catch (err) {
+          console.error("Failed to decrypt incoming message:", err);
+          decryptedText = msg.message;
+        }
       }
       const decryptedMsg = { ...msg, message: decryptedText };
       messageSoundRef.current?.play().catch(console.error);
@@ -310,7 +337,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const handleMessagesRead = ({ readerId }: { readerId: string }) => {
       setMessages((prev) =>
         prev.map((m) =>
-          m.receiver_id === readerId && !m.isRead ? { ...m, isRead: true } : m,
+          m.sender_id === user.id && m.receiver_id === readerId && !m.isRead
+            ? { ...m, isRead: true }
+            : m,
         ),
       );
     };
@@ -322,6 +351,19 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       );
     };
 
+    const handleIncomingCall = ({
+      callType: incomingType,
+    }: {
+      callType?: string;
+    }) => {
+      const callLabel = incomingType === "audio" ? "Audio" : "Video";
+      toast(`Incoming ${callLabel} Call...`, { icon: "📞", duration: 5000 });
+      sendAppNotification(
+        "Incoming Call",
+        `Someone is calling you (${callLabel})`,
+      );
+    };
+
     socket.on("message-receive", handleMessage);
     socket.on("ephemeral-receive", handleEphemeral);
     socket.on("online-users", handleUserOnline);
@@ -329,17 +371,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     socket.on("user-stop-typing", handleUserStopTyping);
     socket.on("messages-read", handleMessagesRead);
     socket.on("user-offline", handleUserOffline);
-    socket.on(
-      "webrtc-incoming-call",
-      ({ callType: incomingType }: { callType?: string }) => {
-        const callLabel = incomingType === "audio" ? "Audio" : "Video";
-        toast(`Incoming ${callLabel} Call...`, { icon: "📞", duration: 5000 });
-        sendAppNotification(
-          "Incoming Call",
-          `Someone is calling you (${callLabel})`,
-        );
-      },
-    );
+    socket.on("webrtc-incoming-call", handleIncomingCall);
 
     return () => {
       socket.off("message-receive", handleMessage);
@@ -349,7 +381,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       socket.off("user-stop-typing", handleUserStopTyping);
       socket.off("messages-read", handleMessagesRead);
       socket.off("user-offline", handleUserOffline);
-      socket.off("webrtc-incoming-call");
+      socket.off("webrtc-incoming-call", handleIncomingCall);
     };
   }, [socket, user]);
 
@@ -374,31 +406,46 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const handleInputChange = (value: string) => {
-    setInputMsg(value);
+  const handleInputChange = (valueOrUpdater: React.SetStateAction<string>) => {
+    setInputMsg((prev) => {
+      const newVal =
+        typeof valueOrUpdater === "function"
+          ? valueOrUpdater(prev)
+          : valueOrUpdater;
 
-    if (!socket || !targetUserRef.current) return;
+      setTimeout(() => {
+        if (!socketRef.current || !targetUserRef.current) return;
 
-    if (!isTyping && value.length > 0) {
-      setIsTyping(true);
-      socket.emit("typing", { receiverId: targetUserRef.current.id });
-    }
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    if (value.length > 0) {
-      typingTimeoutRef.current = setTimeout(() => {
-        setIsTyping(false);
-        if (targetUserRef.current) {
-          socket.emit("stop-typing", { receiverId: targetUserRef.current.id });
+        if (!isTypingRef.current && newVal.length > 0) {
+          setIsTyping(true);
+          socketRef.current.emit("typing", {
+            receiverId: targetUserRef.current.id,
+          });
         }
-      }, 2000);
-    } else {
-      setIsTyping(false);
-      socket.emit("stop-typing", { receiverId: targetUserRef.current.id });
-    }
+
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+
+        if (newVal.length > 0) {
+          typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+            if (targetUserRef.current) {
+              socketRef.current?.emit("stop-typing", {
+                receiverId: targetUserRef.current.id,
+              });
+            }
+          }, 2000);
+        } else {
+          setIsTyping(false);
+          socketRef.current?.emit("stop-typing", {
+            receiverId: targetUserRef.current.id,
+          });
+        }
+      }, 0);
+
+      return newVal;
+    });
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -421,7 +468,9 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           targetPublicKeyRef.current,
         );
       } catch (err) {
-        console.error("Encryption failed, sending unencrypted", err);
+        console.error("Encryption failed:", err);
+        toast.error("Encryption failed. Message was not sent securely.");
+        return; // Abort send entirely
       }
     }
 
@@ -482,6 +531,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         socket,
         loading,
+        isLoadingUsers,
       }}
     >
       {children}

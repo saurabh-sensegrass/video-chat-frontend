@@ -27,6 +27,7 @@ function ChatLayoutInner({ children }: { children: React.ReactNode }) {
     callerRingtoneSoundRef,
     callAcceptedSoundRef,
     callEndedSoundRef,
+    isLoadingUsers,
   } = useChat();
   const router = useRouter();
 
@@ -88,6 +89,7 @@ function ChatLayoutInner({ children }: { children: React.ReactNode }) {
           user={user}
           logout={logout}
           router={router}
+          isLoadingUsers={isLoadingUsers}
         />
       </div>
 
