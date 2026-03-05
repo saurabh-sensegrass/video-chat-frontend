@@ -51,10 +51,11 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const webrtc = useWebRTC(socket, user?.id);
-  const { callState, initiateCall } = webrtc;
+  const { callState, callType, initiateCall } = webrtc;
 
   const messageSoundRef = useRef<HTMLAudioElement>(null);
   const ringtoneSoundRef = useRef<HTMLAudioElement>(null);
+  const callerRingtoneSoundRef = useRef<HTMLAudioElement>(null);
   const callAcceptedSoundRef = useRef<HTMLAudioElement>(null);
   const callEndedSoundRef = useRef<HTMLAudioElement>(null);
   const prevCallState = useRef(callState);
@@ -66,22 +67,30 @@ export default function ChatPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (
-      (callState === "receiving" || callState === "calling") &&
-      prevCallState.current === "idle"
-    ) {
+    if (callState === "calling" && prevCallState.current === "idle") {
+      // Caller hears outgoing dial tone
+      callerRingtoneSoundRef.current?.play().catch(console.error);
+    } else if (callState === "receiving" && prevCallState.current === "idle") {
+      // Receiver hears incoming ringtone
       ringtoneSoundRef.current?.play().catch(console.error);
     } else if (
       callState === "connected" &&
       (prevCallState.current === "receiving" ||
         prevCallState.current === "calling")
     ) {
+      // Stop both ringtones on connect
       ringtoneSoundRef.current?.pause();
       if (ringtoneSoundRef.current) ringtoneSoundRef.current.currentTime = 0;
+      callerRingtoneSoundRef.current?.pause();
+      if (callerRingtoneSoundRef.current)
+        callerRingtoneSoundRef.current.currentTime = 0;
       callAcceptedSoundRef.current?.play().catch(console.error);
     } else if (callState === "idle" && prevCallState.current !== "idle") {
       ringtoneSoundRef.current?.pause();
       if (ringtoneSoundRef.current) ringtoneSoundRef.current.currentTime = 0;
+      callerRingtoneSoundRef.current?.pause();
+      if (callerRingtoneSoundRef.current)
+        callerRingtoneSoundRef.current.currentTime = 0;
       callEndedSoundRef.current?.play().catch(console.error);
     }
     prevCallState.current = callState;
@@ -248,10 +257,17 @@ export default function ChatPage() {
     socket.on("user-stop-typing", handleUserStopTyping);
     socket.on("messages-read", handleMessagesRead);
     socket.on("user-offline", handleUserOffline);
-    socket.on("webrtc-incoming-call", () => {
-      toast("Incoming Video Call...", { icon: "📞", duration: 5000 });
-      sendAppNotification("Incoming Video Call", "Someone is calling you");
-    });
+    socket.on(
+      "webrtc-incoming-call",
+      ({ callType: incomingType }: { callType?: string }) => {
+        const callLabel = incomingType === "audio" ? "Audio" : "Video";
+        toast(`Incoming ${callLabel} Call...`, { icon: "📞", duration: 5000 });
+        sendAppNotification(
+          "Incoming Call",
+          `Someone is calling you (${callLabel})`,
+        );
+      },
+    );
 
     return () => {
       socket.off("message-receive", handleMessage);
@@ -496,6 +512,12 @@ export default function ChatPage() {
       <audio
         ref={ringtoneSoundRef}
         src="/sounds/ringtone.mp3"
+        loop
+        preload="auto"
+      />
+      <audio
+        ref={callerRingtoneSoundRef}
+        src="/sounds/caller-ringtone.mp3"
         loop
         preload="auto"
       />

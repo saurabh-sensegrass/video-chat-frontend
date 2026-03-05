@@ -54,6 +54,7 @@ export function VideoModal({
 
   const {
     callState,
+    callType,
     localVideoRef,
     remoteVideoRef,
     isCameraOn,
@@ -73,6 +74,8 @@ export function VideoModal({
     isRemoteScreenSharing,
     isFrontCamera,
   } = webrtc;
+
+  const isAudioCall = callType === "audio";
 
   useEffect(() => {
     ephemeralEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -164,7 +167,7 @@ export function VideoModal({
           )}
         </button>
 
-        {callState === "connected" && (
+        {callState === "connected" && !isAudioCall && (
           <div className="absolute top-4 right-20 sm:top-6 sm:right-28 lg:right-32 z-10 flex flex-col gap-2">
             <button
               onClick={() =>
@@ -196,51 +199,78 @@ export function VideoModal({
         )}
 
         {callState === "connected" ? (
-          <>
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className={`w-full h-full transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"} ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "sm:object-cover object-contain"}`}
-              style={{
-                filter:
-                  filter === "grayscale"
-                    ? "grayscale(100%) brightness(1.15)"
-                    : filter === "sepia"
-                      ? "sepia(100%) brightness(1.15)"
-                      : filter === "brightness"
-                        ? "brightness(150%)"
-                        : filter === "contrast"
-                          ? "contrast(150%) brightness(1.15)"
-                          : "brightness(1.15)",
-                transform: `${isRemoteScreenSharing ? "" : "scaleX(-1) "}scale(${remoteVideoZoom})`,
-              }}
-            />
-            {isRemoteScreenSharing && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 bg-indigo-500/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg backdrop-blur-sm animate-pulse border border-white/20">
-                <MonitorUp className="w-3.5 h-3.5" />
-                Partner is sharing screen
+          isAudioCall ? (
+            /* Audio call connected view: avatar + status */
+            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900">
+              <div className="w-28 h-28 sm:w-36 sm:h-36 bg-gradient-to-br from-green-500/30 to-emerald-600/30 rounded-full flex items-center justify-center mb-6 border-2 border-green-500/30 shadow-2xl shadow-green-500/10">
+                <Phone className="w-12 h-12 sm:w-16 sm:h-16 text-green-400" />
               </div>
-            )}
-            {!isRemoteCameraOn && !isRemoteScreenSharing && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-0">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-zinc-800 rounded-full flex items-center justify-center shadow-xl shadow-black/50 mb-6 border-4 border-zinc-700/50">
-                  <VideoOff className="w-10 h-10 sm:w-14 sm:h-14 text-zinc-500" />
-                </div>
-                <p className="text-lg sm:text-xl font-medium text-zinc-400">
-                  Camera is turned off
-                </p>
+              <p className="text-xl sm:text-2xl font-semibold text-zinc-200 mb-2">
+                Audio Call Connected
+              </p>
+              <div className="flex items-center gap-2 text-zinc-500">
                 {!isRemoteMicOn && (
-                  <div className="mt-4 flex items-center text-red-400 bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20">
-                    <MicOff className="w-4 h-4 mr-2" />
-                    <span className="text-sm font-medium">
-                      Microphone muted
-                    </span>
+                  <div className="flex items-center text-red-400 bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
+                    <MicOff className="w-4 h-4 mr-1.5" />
+                    <span className="text-sm font-medium">Partner muted</span>
                   </div>
                 )}
               </div>
-            )}
-          </>
+              {/* Hidden audio-only remote element for audio playback */}
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="hidden"
+              />
+            </div>
+          ) : (
+            <>
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className={`w-full h-full transition-all ${!isRemoteCameraOn ? "opacity-0" : "opacity-100"} ${isRemoteScreenSharing ? "object-contain bg-zinc-900/50" : "sm:object-cover object-contain"}`}
+                style={{
+                  filter:
+                    filter === "grayscale"
+                      ? "grayscale(100%) brightness(1.15)"
+                      : filter === "sepia"
+                        ? "sepia(100%) brightness(1.15)"
+                        : filter === "brightness"
+                          ? "brightness(150%)"
+                          : filter === "contrast"
+                            ? "contrast(150%) brightness(1.15)"
+                            : "brightness(1.15)",
+                  transform: `${isRemoteScreenSharing ? "" : "scaleX(-1) "}scale(${remoteVideoZoom})`,
+                }}
+              />
+              {isRemoteScreenSharing && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 bg-indigo-500/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg backdrop-blur-sm animate-pulse border border-white/20">
+                  <MonitorUp className="w-3.5 h-3.5" />
+                  Partner is sharing screen
+                </div>
+              )}
+              {!isRemoteCameraOn && !isRemoteScreenSharing && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-0">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 bg-zinc-800 rounded-full flex items-center justify-center shadow-xl shadow-black/50 mb-6 border-4 border-zinc-700/50">
+                    <VideoOff className="w-10 h-10 sm:w-14 sm:h-14 text-zinc-500" />
+                  </div>
+                  <p className="text-lg sm:text-xl font-medium text-zinc-400">
+                    Camera is turned off
+                  </p>
+                  {!isRemoteMicOn && (
+                    <div className="mt-4 flex items-center text-red-400 bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20">
+                      <MicOff className="w-4 h-4 mr-2" />
+                      <span className="text-sm font-medium">
+                        Microphone muted
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500">
             {callState === "calling" ? (
@@ -248,8 +278,11 @@ export function VideoModal({
                 <div className="w-20 h-20 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mb-6 animate-pulse">
                   <Phone className="w-8 h-8" />
                 </div>
-                <p className="text-xl font-medium text-zinc-300 mb-8">
+                <p className="text-xl font-medium text-zinc-300 mb-2">
                   Calling...
+                </p>
+                <p className="text-sm text-zinc-500 mb-8">
+                  {isAudioCall ? "Audio Call" : "Video Call"}
                 </p>
                 <button
                   onClick={cancelCall}
@@ -263,10 +296,10 @@ export function VideoModal({
                 <div className="w-20 h-20 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mb-6 animate-bounce">
                   <Phone className="w-8 h-8" />
                 </div>
-                <p className="text-xl font-medium text-zinc-300 mb-8">
-                  Incoming Call
+                <p className="text-xl font-medium text-zinc-300 mb-2">
+                  Incoming {isAudioCall ? "Audio" : "Video"} Call
                 </p>
-                <div className="flex gap-4">
+                <div className="flex gap-4 mt-6">
                   <button
                     onClick={acceptCall}
                     className="w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 shadow-lg shadow-green-500/20"
@@ -285,35 +318,38 @@ export function VideoModal({
           </div>
         )}
 
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 w-24 sm:w-40 md:w-48 aspect-[3/4] md:aspect-video bg-zinc-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-700/50 z-10">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-full transition-all ${isScreenSharing ? "object-contain bg-zinc-900/50" : "object-cover"}`}
-            style={{
-              transform: isScreenSharing
-                ? "none"
-                : isFrontCamera
-                  ? "scaleX(-1)"
-                  : "none",
-              filter: "brightness(1.15)",
-            }}
-          />
-          {!isCameraOn && !isScreenSharing && (
-            <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-              <VideoOff className="w-6 h-6 text-zinc-500" />
-            </div>
-          )}
-          {isScreenSharing && (
-            <div className="absolute inset-0 bg-indigo-600/20 backdrop-blur-[2px] flex items-center justify-center border-2 border-indigo-500 rounded-2xl">
-              <div className="bg-indigo-500 text-white p-2 rounded-lg shadow-lg">
-                <MonitorUp className="w-5 h-5 animate-bounce" />
+        {/* Local video preview — hidden for audio calls */}
+        {!isAudioCall && (
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 w-24 sm:w-40 md:w-48 aspect-[3/4] md:aspect-video bg-zinc-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 border-zinc-700/50 z-10">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full transition-all ${isScreenSharing ? "object-contain bg-zinc-900/50" : "object-cover"}`}
+              style={{
+                transform: isScreenSharing
+                  ? "none"
+                  : isFrontCamera
+                    ? "scaleX(-1)"
+                    : "none",
+                filter: "brightness(1.15)",
+              }}
+            />
+            {!isCameraOn && !isScreenSharing && (
+              <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
+                <VideoOff className="w-6 h-6 text-zinc-500" />
               </div>
-            </div>
-          )}
-        </div>
+            )}
+            {isScreenSharing && (
+              <div className="absolute inset-0 bg-indigo-600/20 backdrop-blur-[2px] flex items-center justify-center border-2 border-indigo-500 rounded-2xl">
+                <div className="bg-indigo-500 text-white p-2 rounded-lg shadow-lg">
+                  <MonitorUp className="w-5 h-5 animate-bounce" />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {callState === "connected" && (
           <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-auto flex items-center justify-center gap-1.5 sm:gap-3 bg-zinc-950/80 backdrop-blur-xl px-3 sm:px-6 py-2.5 sm:py-4 rounded-3xl sm:rounded-full border border-zinc-800 shadow-2xl z-50">
@@ -327,56 +363,66 @@ export function VideoModal({
                 <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
-            <button
-              onClick={toggleCamera}
-              className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isCameraOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
-            >
-              {isCameraOn ? (
-                <Video className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
-            {availableCameras.length > 1 && (
-              <button
-                onClick={switchCamera}
-                className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex shrink-0 items-center justify-center text-white transition-colors"
-                title="Switch Camera"
-              >
-                <RefreshCcw className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            )}
-            <button
-              onClick={toggleScreenShare}
-              className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${!isScreenSharing ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"}`}
-              title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
-            >
-              {isScreenSharing ? (
-                <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
-
-            <div className="hidden xs:block w-px h-6 sm:h-8 bg-zinc-800 mx-0.5 sm:mx-1 shrink-0"></div>
-            <div className="relative group shrink-0">
-              <button className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex items-center justify-center text-white transition-colors">
-                <Settings2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 hidden group-hover:flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 w-32 origin-bottom">
-                {["none", "grayscale", "sepia", "brightness", "contrast"].map(
-                  (f) => (
-                    <button
-                      key={f}
-                      onClick={() => setFilter(f)}
-                      className={`text-sm py-2 px-3 rounded-lg text-left capitalize transition-colors ${filter === f ? "bg-indigo-500/20 text-indigo-300" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
-                    >
-                      {f}
-                    </button>
-                  ),
+            {!isAudioCall && (
+              <>
+                <button
+                  onClick={toggleCamera}
+                  className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isCameraOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
+                >
+                  {isCameraOn ? (
+                    <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                  )}
+                </button>
+                {availableCameras.length > 1 && (
+                  <button
+                    onClick={switchCamera}
+                    className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex shrink-0 items-center justify-center text-white transition-colors"
+                    title="Switch Camera"
+                  >
+                    <RefreshCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
                 )}
-              </div>
-            </div>
+                <button
+                  onClick={toggleScreenShare}
+                  className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${!isScreenSharing ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"}`}
+                  title={
+                    isScreenSharing ? "Stop Sharing Screen" : "Share Screen"
+                  }
+                >
+                  {isScreenSharing ? (
+                    <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />
+                  )}
+                </button>
+
+                <div className="hidden xs:block w-px h-6 sm:h-8 bg-zinc-800 mx-0.5 sm:mx-1 shrink-0"></div>
+                <div className="relative group shrink-0">
+                  <button className="w-9 h-9 sm:w-12 sm:h-12 bg-zinc-800 hover:bg-zinc-700 rounded-full flex items-center justify-center text-white transition-colors">
+                    <Settings2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 hidden group-hover:flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl p-2 w-32 origin-bottom">
+                    {[
+                      "none",
+                      "grayscale",
+                      "sepia",
+                      "brightness",
+                      "contrast",
+                    ].map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={`text-sm py-2 px-3 rounded-lg text-left capitalize transition-colors ${filter === f ? "bg-indigo-500/20 text-indigo-300" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
             <div className="hidden xs:block w-px h-6 sm:h-8 bg-zinc-800 mx-0.5 sm:mx-1 shrink-0"></div>
             <button
               onClick={() => setShowChat((prev) => !prev)}

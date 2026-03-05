@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Message, UserProfile } from "./types";
+import { CallType } from "@/hooks/useWebRTC";
 import {
   Send,
   Smile,
   Phone,
+  Video,
   Shield,
   Check,
   CheckCheck,
   ArrowLeft,
+  ChevronDown,
 } from "lucide-react";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
@@ -68,7 +71,7 @@ interface ChatWindowProps {
   user: any;
   onlineUsers: string[];
   remoteTyping: boolean;
-  initiateCall: (id: string) => void;
+  initiateCall: (id: string, callType: CallType) => void;
   showEmojiPicker: boolean;
   setShowEmojiPicker: (show: boolean) => void;
   emojiPickerRef: React.RefObject<HTMLDivElement | null>;
@@ -95,6 +98,8 @@ export function ChatWindow({
   onBack,
 }: ChatWindowProps) {
   const isOnline = targetUser && onlineUsers.includes(targetUser.id);
+  const [showCallMenu, setShowCallMenu] = useState(false);
+  const callMenuRef = useRef<HTMLDivElement>(null);
 
   // Close emoji picker on outside click
   React.useEffect(() => {
@@ -112,6 +117,29 @@ export function ChatWindow({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker, emojiPickerRef, setShowEmojiPicker]);
+
+  // Close call menu on outside click
+  useEffect(() => {
+    if (!showCallMenu) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        callMenuRef.current &&
+        !callMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowCallMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showCallMenu]);
+
+  const handleCallOption = (callType: CallType) => {
+    if (!isOnline || !targetUser) return;
+    setShowCallMenu(false);
+    initiateCall(targetUser.id, callType);
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full bg-zinc-950/20">
@@ -169,18 +197,43 @@ export function ChatWindow({
                   E2EE Active
                 </div>
               </div>
-              <button
-                onClick={() => isOnline && initiateCall(targetUser.id)}
-                disabled={!isOnline}
-                className={`group w-11 h-11 text-white rounded-xl flex items-center justify-center transition-all border ${
-                  isOnline
-                    ? "bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:scale-105 active:scale-95 border-indigo-400/20"
-                    : "bg-zinc-700 border-zinc-600/30 cursor-not-allowed opacity-50"
-                }`}
-                title={isOnline ? "Start Video Call" : "User is offline"}
-              >
-                <Phone className="w-5 h-5" />
-              </button>
+              <div className="relative" ref={callMenuRef}>
+                <button
+                  onClick={() => isOnline && setShowCallMenu((prev) => !prev)}
+                  disabled={!isOnline}
+                  className={`group w-11 h-11 text-white rounded-xl flex items-center justify-center transition-all border ${
+                    isOnline
+                      ? "bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:scale-105 active:scale-95 border-indigo-400/20"
+                      : "bg-zinc-700 border-zinc-600/30 cursor-not-allowed opacity-50"
+                  }`}
+                  title={isOnline ? "Start Call" : "User is offline"}
+                >
+                  <Phone className="w-5 h-5" />
+                  {isOnline && (
+                    <ChevronDown className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-indigo-300" />
+                  )}
+                </button>
+
+                {showCallMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-zinc-900 border border-zinc-700/60 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={() => handleCallOption("video")}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-200 hover:bg-indigo-600/20 hover:text-indigo-300 transition-colors"
+                    >
+                      <Video className="w-4 h-4" />
+                      Video Call
+                    </button>
+                    <div className="h-px bg-zinc-800 mx-2" />
+                    <button
+                      onClick={() => handleCallOption("audio")}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-200 hover:bg-green-600/20 hover:text-green-300 transition-colors"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Audio Call
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

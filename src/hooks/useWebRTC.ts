@@ -3,12 +3,14 @@ import { Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
 
 export type CallState = "idle" | "calling" | "receiving" | "connected";
+export type CallType = "video" | "audio";
 
 export function useWebRTC(
   socket: Socket | null,
   currentUserId: string | undefined,
 ) {
   const [callState, setCallState] = useState<CallState>("idle");
+  const [callType, setCallType] = useState<CallType>("video");
   const [remoteUserId, setRemoteUserId] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,6 +35,7 @@ export function useWebRTC(
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const endCallRef = useRef<() => void>(() => {});
+  const callTypeRef = useRef<CallType>(callType);
 
   // STUN ONLY
   const getRTCConfiguration = (): RTCConfiguration => ({
@@ -65,6 +68,7 @@ export function useWebRTC(
     setLocalStream(null);
     setRemoteStream(null);
     setCallState("idle");
+    setCallType("video");
     setRemoteUserId(null);
     setIsScreenSharing(false);
     setIsRemoteScreenSharing(false);
@@ -89,17 +93,26 @@ export function useWebRTC(
     };
   }, []);
 
-  const initLocalStream = async () => {
+  // Keep callTypeRef in sync so socket closures always see the latest callType
+  useEffect(() => {
+    callTypeRef.current = callType;
+  }, [callType]);
+
+  const initLocalStream = async (mediaCallType?: CallType) => {
+    const effectiveCallType = mediaCallType ?? callType;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       let videoDevices = devices.filter(
         (device) => device.kind === "videoinput",
       );
 
+      const wantVideo = effectiveCallType === "video";
       const constraints: MediaStreamConstraints = {
-        video: currentCameraId
-          ? { deviceId: { exact: currentCameraId } }
-          : true,
+        video: wantVideo
+          ? currentCameraId
+            ? { deviceId: { exact: currentCameraId } }
+            : true
+          : false,
         audio: true,
       };
 
@@ -201,15 +214,17 @@ export function useWebRTC(
     if (!socket || !remoteUserId) return;
     socket.emit("webrtc-call-end", { receiverId: remoteUserId });
     setCallState("idle");
+    setCallType("video");
     setRemoteUserId(null);
     clearCallTimeout();
   };
 
-  const initiateCall = async (receiverId: string) => {
+  const initiateCall = async (receiverId: string, type: CallType = "video") => {
     if (!socket || callState !== "idle") return;
     setRemoteUserId(receiverId);
+    setCallType(type);
     setCallState("calling");
-    socket.emit("webrtc-call-initiate", { receiverId });
+    socket.emit("webrtc-call-initiate", { receiverId, callType: type });
 
     // Set 50s timeout for auto cancellation
     clearCallTimeout();
@@ -224,7 +239,7 @@ export function useWebRTC(
   const acceptCall = async () => {
     if (!socket || !remoteUserId) return;
 
-    const stream = await initLocalStream();
+    const stream = await initLocalStream(callType);
     if (!stream) {
       rejectCall();
       return;
@@ -298,15 +313,25 @@ export function useWebRTC(
   useEffect(() => {
     if (!socket || !currentUserId) return;
 
-    socket.on("webrtc-incoming-call", ({ callerId }: { callerId: string }) => {
-      if (callState === "idle") {
-        setRemoteUserId(callerId);
-        setCallState("receiving");
-      } else {
-        // Busy
-        socket.emit("webrtc-call-reject", { callerId });
-      }
-    });
+    socket.on(
+      "webrtc-incoming-call",
+      ({
+        callerId,
+        callType: incomingCallType,
+      }: {
+        callerId: string;
+        callType?: CallType;
+      }) => {
+        if (callState === "idle") {
+          setRemoteUserId(callerId);
+          setCallType(incomingCallType ?? "video");
+          setCallState("receiving");
+        } else {
+          // Busy
+          socket.emit("webrtc-call-reject", { callerId });
+        }
+      },
+    );
 
     socket.on(
       "webrtc-call-accepted",
@@ -314,7 +339,7 @@ export function useWebRTC(
         if (callState === "calling" && remoteUserId === receiverId) {
           clearCallTimeout();
           setCallState("connected");
-          const stream = await initLocalStream();
+          const stream = await initLocalStream(callTypeRef.current);
           if (!stream) {
             endCallRef.current();
             return;
@@ -357,7 +382,7 @@ export function useWebRTC(
           // If we haven't created a stream yet (which we should have on acceptCall)
           let stream = localStream;
           if (!stream) {
-            stream = await initLocalStream();
+            stream = await initLocalStream(callTypeRef.current);
             if (!stream) return;
           }
 
@@ -452,6 +477,7 @@ export function useWebRTC(
         setLocalStream(null);
         setRemoteStream(null);
         setCallState("idle");
+        setCallType("video");
         setRemoteUserId(null);
         setIsScreenSharing(false);
         setIsRemoteScreenSharing(false);
@@ -611,6 +637,7 @@ export function useWebRTC(
 
   return {
     callState,
+    callType,
     localVideoRef,
     remoteVideoRef,
     remoteUserId,
