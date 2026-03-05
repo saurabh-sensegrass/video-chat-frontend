@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { sendAppNotification } from "@/lib/notifications";
 import { toast } from "react-hot-toast";
+import { AudioVisualizer } from "@/components/AudioVisualizer";
 
 type GuestMessage = {
   id: string;
@@ -118,6 +119,8 @@ export default function GuestVideoRoom() {
     isRemoteMicOn,
     isRemoteCameraOn,
     isFrontCamera,
+    localStream,
+    remoteStream,
   } = webrtc;
 
   // Initial Join Logic
@@ -424,6 +427,15 @@ export default function GuestVideoRoom() {
             <span className="text-xs font-medium text-white">
               {remoteUserName || "Guest"}
             </span>
+            {callState === "connected" && (
+              <AudioVisualizer
+                stream={remoteStream}
+                isMuted={!isRemoteMicOn}
+                barCount={3}
+                barColor="#818cf8"
+                size="sm"
+              />
+            )}
             {!isRemoteMicOn && (
               <div className="flex items-center justify-center p-1 bg-red-500/20 rounded-md border border-red-500/30 ml-1">
                 <MicOff className="w-3 h-3 text-red-500" />
@@ -675,6 +687,17 @@ export default function GuestVideoRoom() {
             <span className="truncate max-w-[60px] sm:max-w-[80px]">
               You ({userName})
             </span>
+            {isCameraOn && (
+              <div className="ml-1">
+                <AudioVisualizer
+                  stream={localStream}
+                  isMuted={!isMicOn}
+                  barCount={3}
+                  barColor="#818cf8"
+                  size="sm"
+                />
+              </div>
+            )}
           </div>
         </div>
 

@@ -215,7 +215,7 @@ export function ChatWindow({
                 </button>
 
                 {showCallMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-zinc-900 border border-zinc-700/60 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-zinc-900 border border-zinc-700/60 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.7)] overflow-hidden z-[100] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
                     <button
                       onClick={() => handleCallOption("video")}
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm text-zinc-200 hover:bg-indigo-600/20 hover:text-indigo-300 transition-colors"

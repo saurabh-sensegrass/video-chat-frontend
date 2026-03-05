@@ -633,6 +633,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
   return {
     callState,
+    localStream,
+    remoteStream,
     localVideoRef,
     remoteVideoRef,
     isCameraOn,

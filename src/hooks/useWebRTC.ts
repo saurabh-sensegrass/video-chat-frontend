@@ -638,6 +638,8 @@ export function useWebRTC(
   return {
     callState,
     callType,
+    localStream,
+    remoteStream,
     localVideoRef,
     remoteVideoRef,
     remoteUserId,

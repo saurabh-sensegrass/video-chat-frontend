@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { Message } from "./types";
 import { useWebRTC } from "@/hooks/useWebRTC";
+import { AudioVisualizer } from "@/components/AudioVisualizer";
 import { Socket } from "socket.io-client";
 import {
   VideoOff,
@@ -55,6 +56,8 @@ export function VideoModal({
   const {
     callState,
     callType,
+    localStream,
+    remoteStream,
     localVideoRef,
     remoteVideoRef,
     isCameraOn,
@@ -209,6 +212,13 @@ export function VideoModal({
                 Audio Call Connected
               </p>
               <div className="flex items-center gap-2 text-zinc-500">
+                <AudioVisualizer
+                  stream={remoteStream}
+                  isMuted={!isRemoteMicOn}
+                  barCount={4}
+                  barColor="#4ade80"
+                  size="md"
+                />
                 {!isRemoteMicOn && (
                   <div className="flex items-center text-red-400 bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
                     <MicOff className="w-4 h-4 mr-1.5" />
@@ -336,6 +346,17 @@ export function VideoModal({
                 filter: "brightness(1.15)",
               }}
             />
+            {isCameraOn && (
+              <div className="absolute bottom-2 left-2 z-20 flex items-center gap-2 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">
+                <AudioVisualizer
+                  stream={localStream}
+                  isMuted={!isMicOn}
+                  barCount={3}
+                  barColor="#818cf8"
+                  size="sm"
+                />
+              </div>
+            )}
             {!isCameraOn && !isScreenSharing && (
               <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
                 <VideoOff className="w-6 h-6 text-zinc-500" />
@@ -348,6 +369,20 @@ export function VideoModal({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Remote audio visualizer overlay for video calls */}
+        {callState === "connected" && !isAudioCall && (
+          <div className="absolute bottom-20 sm:bottom-24 left-4 sm:left-6 z-20 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <AudioVisualizer
+              stream={remoteStream}
+              isMuted={!isRemoteMicOn}
+              barCount={4}
+              barColor="#818cf8"
+              size="sm"
+            />
+            {!isRemoteMicOn && <MicOff className="w-3 h-3 text-red-400" />}
           </div>
         )}
 
