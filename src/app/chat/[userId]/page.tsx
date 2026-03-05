@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { useChat } from "../ChatContext";
 import { ChatWindow } from "../ChatWindow";
 import { useRouter } from "next/navigation";
+import { EmojiClickData } from "emoji-picker-react";
 
 export default function ChatRoomPage() {
   const {
@@ -31,7 +32,7 @@ export default function ChatRoomPage() {
     }
   }, [availableUsers, targetUser, router]);
 
-  const handleEmojiClick = (emojiData: any) => {
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
     setInputMsg((prev) => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };

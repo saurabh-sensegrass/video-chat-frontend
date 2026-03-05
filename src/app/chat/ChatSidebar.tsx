@@ -89,9 +89,13 @@ export function ChatSidebar({
             </div>
           ))
         ) : filteredUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-zinc-500 opacity-80 pt-10">
+          <div className="flex flex-col items-center justify-center h-full text-zinc-500 opacity-80 pt-10 px-4 text-center">
             <UserIcon className="w-10 h-10 mb-4 opacity-50" />
-            <p className="text-sm">No users found</p>
+            <p className="text-sm font-medium">
+              {searchTerm.trim().length > 0
+                ? `No results for "${searchTerm}"`
+                : "No users available"}
+            </p>
           </div>
         ) : (
           filteredUsers.map((u) => {

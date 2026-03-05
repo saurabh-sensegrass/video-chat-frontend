@@ -265,6 +265,33 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     fetchInitialData();
   }, [user]);
 
+  // Seamless Read Receipts processing
+  useEffect(() => {
+    if (!socket || !targetUser || !user) return;
+
+    // Check if there are any unread messages SENT BY the targetUser TO the current user
+    const hasUnread = messages.some(
+      (m) =>
+        !m.isRead && m.sender_id === targetUser.id && m.receiver_id === user.id,
+    );
+
+    if (hasUnread) {
+      // Tell down-stream to mark them as read DB-side and inform sender via broadcast
+      socket.emit("mark-messages-read", { senderId: targetUser.id });
+
+      // Aggressively update local react state so it's instantly seamless in UI
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.sender_id === targetUser.id &&
+          m.receiver_id === user.id &&
+          !m.isRead
+            ? { ...m, isRead: true }
+            : m,
+        ),
+      );
+    }
+  }, [messages, targetUser, socket, user]);
+
   // Socket Listeners
   useEffect(() => {
     if (!socket || !user) return;
@@ -406,46 +433,44 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const handleInputChange = (valueOrUpdater: React.SetStateAction<string>) => {
-    setInputMsg((prev) => {
-      const newVal =
-        typeof valueOrUpdater === "function"
-          ? valueOrUpdater(prev)
-          : valueOrUpdater;
+  useEffect(() => {
+    if (!socketRef.current || !targetUserRef.current) return;
 
-      setTimeout(() => {
-        if (!socketRef.current || !targetUserRef.current) return;
+    if (inputMsg.length > 0) {
+      if (!isTypingRef.current) {
+        setIsTyping(true);
+        socketRef.current.emit("typing", {
+          receiverId: targetUserRef.current.id,
+        });
+      }
 
-        if (!isTypingRef.current && newVal.length > 0) {
-          setIsTyping(true);
-          socketRef.current.emit("typing", {
-            receiverId: targetUserRef.current.id,
-          });
-        }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
 
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-        }
-
-        if (newVal.length > 0) {
-          typingTimeoutRef.current = setTimeout(() => {
-            setIsTyping(false);
-            if (targetUserRef.current) {
-              socketRef.current?.emit("stop-typing", {
-                receiverId: targetUserRef.current.id,
-              });
-            }
-          }, 2000);
-        } else {
-          setIsTyping(false);
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        if (targetUserRef.current) {
           socketRef.current?.emit("stop-typing", {
             receiverId: targetUserRef.current.id,
           });
         }
-      }, 0);
+      }, 2000);
+    } else {
+      if (isTypingRef.current) {
+        setIsTyping(false);
+        socketRef.current.emit("stop-typing", {
+          receiverId: targetUserRef.current.id,
+        });
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }
+  }, [inputMsg]);
 
-      return newVal;
-    });
+  const handleInputChange = (valueOrUpdater: React.SetStateAction<string>) => {
+    setInputMsg(valueOrUpdater);
   };
 
   const sendMessage = async (e: React.FormEvent) => {
