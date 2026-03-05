@@ -93,7 +93,7 @@ export function ChatSidebar({
             <UserIcon className="w-10 h-10 mb-4 opacity-50" />
             <p className="text-sm font-medium">
               {searchTerm.trim().length > 0
-                ? `No results for "${searchTerm}"`
+                ? `No results for "${searchTerm.trim()}"`
                 : "No users available"}
             </p>
           </div>

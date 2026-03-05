@@ -94,6 +94,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
   const socketRef = useRef(socket);
+  const lastMarkReadEmittedRef = useRef<string | null>(null);
   const [remoteTyping, setRemoteTyping] = useState(false);
 
   // E2EE Keys
@@ -267,17 +268,28 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Seamless Read Receipts processing
   useEffect(() => {
-    if (!socket || !targetUser || !user) return;
+    if (!socket || !targetUser || !user) {
+      lastMarkReadEmittedRef.current = null;
+      return;
+    }
 
-    // Check if there are any unread messages SENT BY the targetUser TO the current user
-    const hasUnread = messages.some(
-      (m) =>
-        !m.isRead && m.sender_id === targetUser.id && m.receiver_id === user.id,
-    );
+    // Check only newly received message info by scanning from the end
+    let hasUnread = false;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.sender_id === targetUser.id && m.receiver_id === user.id) {
+        if (!m.isRead) hasUnread = true;
+        break; // Checking the newest relevant message is enough
+      }
+    }
 
-    if (hasUnread) {
-      // Tell down-stream to mark them as read DB-side and inform sender via broadcast
-      socket.emit("mark-messages-read", { senderId: targetUser.id });
+    if (!hasUnread) {
+      lastMarkReadEmittedRef.current = null;
+    } else {
+      if (lastMarkReadEmittedRef.current !== targetUser.id) {
+        socket.emit("mark-messages-read", { senderId: targetUser.id });
+        lastMarkReadEmittedRef.current = targetUser.id;
+      }
 
       // Aggressively update local react state so it's instantly seamless in UI
       setMessages((prev) =>
@@ -336,7 +348,12 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         user.id === decryptedMsg.receiver_id &&
         isFromCurrentTarget
       ) {
-        socket.emit("mark-messages-read", { senderId: decryptedMsg.sender_id });
+        if (lastMarkReadEmittedRef.current !== decryptedMsg.sender_id) {
+          socket.emit("mark-messages-read", {
+            senderId: decryptedMsg.sender_id,
+          });
+          lastMarkReadEmittedRef.current = decryptedMsg.sender_id;
+        }
       }
     };
 
@@ -434,13 +451,15 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!socketRef.current || !targetUserRef.current) return;
+    const previousTargetId = targetUserRef.current?.id;
+
+    if (!socketRef.current || !previousTargetId) return;
 
     if (inputMsg.length > 0) {
       if (!isTypingRef.current) {
         setIsTyping(true);
         socketRef.current.emit("typing", {
-          receiverId: targetUserRef.current.id,
+          receiverId: previousTargetId,
         });
       }
 
@@ -450,24 +469,40 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
       typingTimeoutRef.current = setTimeout(() => {
         setIsTyping(false);
-        if (targetUserRef.current) {
-          socketRef.current?.emit("stop-typing", {
-            receiverId: targetUserRef.current.id,
-          });
-        }
+        socketRef.current?.emit("stop-typing", {
+          receiverId: previousTargetId,
+        });
       }, 2000);
     } else {
       if (isTypingRef.current) {
         setIsTyping(false);
         socketRef.current.emit("stop-typing", {
-          receiverId: targetUserRef.current.id,
+          receiverId: previousTargetId,
         });
       }
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     }
-  }, [inputMsg]);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      if (isTypingRef.current && previousTargetId) {
+        if (
+          targetUserRef.current?.id !== previousTargetId ||
+          inputMsg.length === 0
+        ) {
+          setIsTyping(false);
+          socketRef.current?.emit("stop-typing", {
+            receiverId: previousTargetId,
+          });
+        }
+      }
+    };
+  }, [inputMsg, targetUser?.id]);
 
   const handleInputChange = (valueOrUpdater: React.SetStateAction<string>) => {
     setInputMsg(valueOrUpdater);
