@@ -387,7 +387,9 @@ export function VideoModal({
         )}
 
         {callState === "connected" && (
-          <div className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-auto flex items-center justify-center gap-1.5 sm:gap-3 bg-zinc-950/80 backdrop-blur-xl px-3 sm:px-6 py-2.5 sm:py-4 rounded-3xl sm:rounded-full border border-zinc-800 shadow-2xl z-50">
+          <div
+            className={`absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 ${isAudioCall ? "w-fit px-5" : "w-[calc(100%-2rem)] px-3"} sm:w-auto flex items-center justify-center gap-1.5 sm:gap-3 bg-zinc-950/80 backdrop-blur-xl sm:px-6 py-2.5 sm:py-4 rounded-3xl sm:rounded-full border border-zinc-800 shadow-2xl z-50`}
+          >
             <button
               onClick={toggleMic}
               className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full flex shrink-0 items-center justify-center transition-colors ${isMicOn ? "bg-zinc-800 hover:bg-zinc-700 text-white" : "bg-red-500/20 text-red-500 border border-red-500/50"}`}
