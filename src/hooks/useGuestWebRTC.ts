@@ -41,7 +41,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   );
   const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
   const currentCameraIdRef = useRef<string | null>(null);
-  const isInitializingRef = useRef(false);
+  const initPromiseRef = useRef<Promise<MediaStream | null> | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
 
   const localVideoElemRef = useRef<HTMLVideoElement | null>(null);
@@ -121,72 +121,78 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   }, []);
 
   const initLocalStream = useCallback(async () => {
-    // If we're already initializing, don't start another request
-    if (isInitializingRef.current) return localStreamRef.current;
+    // If we're already initializing, return the existing promise
+    if (initPromiseRef.current) {
+      return initPromiseRef.current;
+    }
 
-    // If we already have a stream, just return it.
-    // This allows the preview to use the same stream as the actual call.
+    // If we already have a stream and it's active, return it.
     if (localStreamRef.current && localStreamRef.current.active) {
       return localStreamRef.current;
     }
 
-    isInitializingRef.current = true;
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      let videoDevices = devices.filter(
-        (device) => device.kind === "videoinput",
-      );
-
-      const constraints: MediaStreamConstraints = {
-        video: currentCameraIdRef.current
-          ? { deviceId: { exact: currentCameraIdRef.current } }
-          : true,
-        audio: true,
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-      if (videoDevices.length === 0 || !videoDevices[0].label) {
-        const newDevices = await navigator.mediaDevices.enumerateDevices();
-        videoDevices = newDevices.filter(
+    // Create a new initialization promise
+    const initPromise = (async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        let videoDevices = devices.filter(
           (device) => device.kind === "videoinput",
         );
-      }
 
-      setAvailableCameras(videoDevices);
+        const constraints: MediaStreamConstraints = {
+          video: currentCameraIdRef.current
+            ? { deviceId: { exact: currentCameraIdRef.current } }
+            : true,
+          audio: true,
+        };
 
-      const currentTrack = stream.getVideoTracks()[0];
-      if (currentTrack) {
-        const activeDevice = videoDevices.find(
-          (d) =>
-            d.label === currentTrack.label ||
-            d.deviceId === currentTrack.getSettings()?.deviceId,
-        );
-        if (activeDevice) {
-          setCurrentCameraId(activeDevice.deviceId);
-          currentCameraIdRef.current = activeDevice.deviceId;
-        } else if (videoDevices.length > 0) {
-          setCurrentCameraId(videoDevices[0].deviceId);
-          currentCameraIdRef.current = videoDevices[0].deviceId;
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        if (videoDevices.length === 0 || !videoDevices[0].label) {
+          const newDevices = await navigator.mediaDevices.enumerateDevices();
+          videoDevices = newDevices.filter(
+            (device) => device.kind === "videoinput",
+          );
         }
 
-        const facingMode = currentTrack.getSettings()?.facingMode;
-        setIsFrontCamera(facingMode !== "environment");
-      }
+        setAvailableCameras(videoDevices);
 
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      if (localVideoElemRef.current) {
-        localVideoElemRef.current.srcObject = stream;
+        const currentTrack = stream.getVideoTracks()[0];
+        if (currentTrack) {
+          const activeDevice = videoDevices.find(
+            (d) =>
+              d.label === currentTrack.label ||
+              d.deviceId === currentTrack.getSettings()?.deviceId,
+          );
+          if (activeDevice) {
+            setCurrentCameraId(activeDevice.deviceId);
+            currentCameraIdRef.current = activeDevice.deviceId;
+          } else if (videoDevices.length > 0) {
+            setCurrentCameraId(videoDevices[0].deviceId);
+            currentCameraIdRef.current = videoDevices[0].deviceId;
+          }
+
+          const facingMode = currentTrack.getSettings()?.facingMode;
+          setIsFrontCamera(facingMode !== "environment");
+        }
+
+        localStreamRef.current = stream;
+        setLocalStream(stream);
+        if (localVideoElemRef.current) {
+          localVideoElemRef.current.srcObject = stream;
+        }
+        return stream;
+      } catch (err) {
+        console.error("Error accessing media devices:", err);
+        return null;
+      } finally {
+        // Clear the promise ref so future calls can restart if needed (e.g. after errors)
+        initPromiseRef.current = null;
       }
-      return stream;
-    } catch (err) {
-      console.error("Error accessing media devices:", err);
-      // Don't force-disable UI states here, let the user retry or see the error
-      return null;
-    } finally {
-      isInitializingRef.current = false;
-    }
+    })();
+
+    initPromiseRef.current = initPromise;
+    return initPromise;
   }, []);
 
   const createPeerConnection = useCallback(
