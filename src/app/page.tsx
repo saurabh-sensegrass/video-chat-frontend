@@ -42,15 +42,6 @@ function requestAppPermissions() {
         // User denied or device unavailable — that's fine
       });
   }
-
-  // Geolocation
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      () => {},
-      () => {},
-      { timeout: 5000 },
-    );
-  }
 }
 
 type PermissionStatus = "granted" | "denied" | "prompt" | "unknown";
@@ -124,21 +115,6 @@ export default function HomePage() {
     };
 
     checkPermissions();
-  }, [permissionsRequested]);
-
-  // Auto-request permissions when in standalone (installed) mode
-  useEffect(() => {
-    const isStandalone = window.matchMedia(
-      "(display-mode: standalone)",
-    ).matches;
-    if (isStandalone && !permissionsRequested) {
-      // Small delay to let the app render first
-      const timer = setTimeout(() => {
-        requestAppPermissions();
-        setPermissionsRequested(true);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
   }, [permissionsRequested]);
 
   const handleInstallClick = async () => {

@@ -27,6 +27,7 @@ import {
   ZoomOut,
   UserX,
   MessageSquare,
+  ArrowRight,
 } from "lucide-react";
 import { sendAppNotification } from "@/lib/notifications";
 import { toast } from "react-hot-toast";
@@ -123,13 +124,32 @@ export default function GuestVideoRoom() {
     remoteStream,
   } = webrtc;
 
+  // Pre-join Preview Logic
+  useEffect(() => {
+    if (!isJoined && isMounted && !isRoomFull) {
+      // Small delay to ensure refs are ready
+      const timer = setTimeout(() => {
+        initLocalStream();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isJoined, isMounted, isRoomFull, initLocalStream]);
+
   // Initial Join Logic
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName.trim() || !socket) return;
 
-    // Request camera access first before fully joining
-    await initLocalStream();
+    // Stream should already be initialized by the preview effect
+    const stream = await initLocalStream();
+
+    // Sync current toggle states to the tracks just in case
+    if (stream) {
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) videoTrack.enabled = isCameraOn;
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = isMicOn;
+    }
 
     // Check for host token in sessionStorage
     const hostToken = sessionStorage.getItem(`host_token_${roomId}`);
@@ -333,55 +353,146 @@ export default function GuestVideoRoom() {
     }
   };
 
-  // NAME ENTRY SCREEN
+  // NAME ENTRY SCREEN (with Preview)
   if (!isMounted) return null; // Prevent hydration errors by waiting for client
 
   if (!isJoined && !isRoomFull) {
     return (
       <div className="min-h-[100dvh] py-8 flex items-center justify-center bg-zinc-950 px-4">
-        <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8" />
+        <div className="w-full max-w-4xl flex flex-col md:flex-row bg-zinc-900 border border-zinc-800 rounded-[2.5rem] shadow-2xl overflow-hidden">
+          {/* Left Side: Video Preview */}
+          <div className="flex-1 bg-black relative aspect-video md:aspect-auto min-h-[300px] flex items-center justify-center border-b md:border-b-0 md:border-r border-zinc-800">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover transition-opacity duration-500 ${isCameraOn ? "opacity-100" : "opacity-0"}`}
+              style={{ transform: isFrontCamera ? "scaleX(-1)" : "none" }}
+            />
+
+            {!isCameraOn && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 bg-zinc-900">
+                <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center mb-4 border border-zinc-700">
+                  <VideoOff className="w-8 h-8" />
+                </div>
+                <p className="text-sm font-medium">Camera is off</p>
+              </div>
+            )}
+
+            {/* Preview Controls Overlay */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 z-20">
+              <button
+                onClick={toggleMic}
+                className={`p-3 rounded-full transition-all hover:scale-110 active:scale-95 ${isMicOn ? "bg-zinc-800 text-white" : "bg-red-500 text-white shadow-lg shadow-red-500/20"}`}
+                title={isMicOn ? "Mute" : "Unmute"}
+              >
+                {isMicOn ? (
+                  <Mic className="w-5 h-5" />
+                ) : (
+                  <MicOff className="w-5 h-5" />
+                )}
+              </button>
+              <button
+                onClick={toggleCamera}
+                className={`p-3 rounded-full transition-all hover:scale-110 active:scale-95 ${isCameraOn ? "bg-zinc-800 text-white" : "bg-red-500 text-white shadow-lg shadow-red-500/20"}`}
+                title={isCameraOn ? "Stop Video" : "Start Video"}
+              >
+                {isCameraOn ? (
+                  <Video className="w-5 h-5" />
+                ) : (
+                  <VideoOff className="w-5 h-5" />
+                )}
+              </button>
+              {availableCameras.length > 1 && (
+                <button
+                  onClick={switchCamera}
+                  className="p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 transition-all"
+                  title="Switch Camera"
+                >
+                  <RefreshCcw className="w-5 h-5" />
+                </button>
+              )}
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Join Video Room
-            </h1>
-            <p className="text-zinc-400 text-sm">
-              You&apos;ve been invited to a private 1-on-1 video call.
-            </p>
+
+            {/* Audio Indicator */}
+            {localStream && (
+              <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+                <AudioVisualizer
+                  stream={localStream}
+                  isMuted={!isMicOn}
+                  barCount={4}
+                  barColor="#818cf8"
+                  size="sm"
+                />
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                  Preview
+                </span>
+              </div>
+            )}
           </div>
 
-          <form onSubmit={handleJoin} className="space-y-4">
-            <div>
-              <label
-                htmlFor="guest-name"
-                className="block text-sm font-medium text-zinc-300 mb-1.5"
-              >
-                Your Name
-              </label>
-              <input
-                id="guest-name"
-                type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="Enter your name"
-                className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white"
-                required
-                maxLength={30}
-              />
+          {/* Right Side: Join Info */}
+          <div className="w-full md:w-[400px] p-8 sm:p-10 flex flex-col justify-center">
+            <div className="text-left mb-8">
+              <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mb-6">
+                <Users className="w-6 h-6" />
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+                Ready to join?
+              </h1>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                Check your audio and video before entering the private room.
+              </p>
             </div>
-            <button
-              type="submit"
-              disabled={!userName.trim() || !connected}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-medium rounded-xl transition-all shadow-lg overflow-hidden relative group"
-            >
-              <span className="relative z-10">
-                {connected ? "Join Room" : "Connecting..."}
-              </span>
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-            </button>
-          </form>
+
+            <form onSubmit={handleJoin} className="space-y-6">
+              <div className="space-y-2">
+                <label
+                  htmlFor="guest-name"
+                  className="block text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1"
+                >
+                  Your Display Name
+                </label>
+                <input
+                  id="guest-name"
+                  type="text"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="e.g. Alex"
+                  className="w-full px-5 py-4 bg-zinc-950 border border-zinc-800 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white transition-all placeholder:text-zinc-700"
+                  required
+                  maxLength={30}
+                  autoFocus
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={!userName.trim() || !connected}
+                  className="w-full group relative py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-bold text-lg rounded-2xl transition-all shadow-xl shadow-indigo-600/20 hover:shadow-indigo-500/30 overflow-hidden active:scale-[0.98]"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {connected ? (
+                      <>
+                        Join Now
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    ) : (
+                      "Connecting..."
+                    )}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                </button>
+              </div>
+
+              <p className="text-[10px] text-zinc-500 text-center px-4 leading-normal">
+                By joining, you agree to our private 1-on-1 calling terms. Your
+                media is encrypted end-to-peer.
+              </p>
+            </form>
+          </div>
         </div>
       </div>
     );

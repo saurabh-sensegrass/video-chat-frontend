@@ -98,9 +98,13 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   }, []);
 
   const initLocalStream = useCallback(async () => {
-    if (localStreamRef.current) return localStreamRef.current;
+    // If we already have a stream, just return it.
+    // This allows the preview to use the same stream as the actual call.
+    if (localStreamRef.current && localStreamRef.current.active) {
+      return localStreamRef.current;
+    }
+
     try {
-      // First try to get devices to see if we have permissions and info
       const devices = await navigator.mediaDevices.enumerateDevices();
       let videoDevices = devices.filter(
         (device) => device.kind === "videoinput",
@@ -115,7 +119,6 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // If we didn't have devices before (permissions just granted), get them now
       if (videoDevices.length === 0 || !videoDevices[0].label) {
         const newDevices = await navigator.mediaDevices.enumerateDevices();
         videoDevices = newDevices.filter(
@@ -138,7 +141,6 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
           setCurrentCameraId(videoDevices[0].deviceId);
         }
 
-        // Detect facing mode: 'user' = front, 'environment' = back
         const facingMode = currentTrack.getSettings()?.facingMode;
         setIsFrontCamera(facingMode !== "environment");
       }
@@ -151,8 +153,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       return stream;
     } catch (err) {
       console.error("Error accessing media devices:", err);
-      setIsCameraOn(false);
-      setIsMicOn(false);
+      // Don't force-disable UI states here, let the user retry or see the error
       return null;
     }
   }, [currentCameraId]);
