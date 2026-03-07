@@ -40,6 +40,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     [],
   );
   const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
+  const currentCameraIdRef = useRef<string | null>(null);
+  const isInitializingRef = useRef(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
 
   const localVideoElemRef = useRef<HTMLVideoElement | null>(null);
@@ -119,12 +121,16 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   }, []);
 
   const initLocalStream = useCallback(async () => {
+    // If we're already initializing, don't start another request
+    if (isInitializingRef.current) return localStreamRef.current;
+
     // If we already have a stream, just return it.
     // This allows the preview to use the same stream as the actual call.
     if (localStreamRef.current && localStreamRef.current.active) {
       return localStreamRef.current;
     }
 
+    isInitializingRef.current = true;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       let videoDevices = devices.filter(
@@ -132,8 +138,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       );
 
       const constraints: MediaStreamConstraints = {
-        video: currentCameraId
-          ? { deviceId: { exact: currentCameraId } }
+        video: currentCameraIdRef.current
+          ? { deviceId: { exact: currentCameraIdRef.current } }
           : true,
         audio: true,
       };
@@ -158,8 +164,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         );
         if (activeDevice) {
           setCurrentCameraId(activeDevice.deviceId);
+          currentCameraIdRef.current = activeDevice.deviceId;
         } else if (videoDevices.length > 0) {
           setCurrentCameraId(videoDevices[0].deviceId);
+          currentCameraIdRef.current = videoDevices[0].deviceId;
         }
 
         const facingMode = currentTrack.getSettings()?.facingMode;
@@ -176,8 +184,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       console.error("Error accessing media devices:", err);
       // Don't force-disable UI states here, let the user retry or see the error
       return null;
+    } finally {
+      isInitializingRef.current = false;
     }
-  }, [currentCameraId]);
+  }, []);
 
   const createPeerConnection = useCallback(
     (stream: MediaStream) => {
@@ -529,6 +539,7 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       );
       const nextIndex = (currentIndex + 1) % availableCameras.length;
       const nextCameraId = availableCameras[nextIndex].deviceId;
+      currentCameraIdRef.current = nextCameraId;
 
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { deviceId: { exact: nextCameraId } },

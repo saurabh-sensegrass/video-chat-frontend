@@ -140,15 +140,21 @@ export default function GuestVideoRoom() {
     e.preventDefault();
     if (!userName.trim() || !socket) return;
 
-    // Stream should already be initialized by the preview effect
-    const stream = await initLocalStream();
-
-    // Sync current toggle states to the tracks just in case
-    if (stream) {
-      const videoTrack = stream.getVideoTracks()[0];
+    // Sync current toggle states to the tracks
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) videoTrack.enabled = isCameraOn;
-      const audioTrack = stream.getAudioTracks()[0];
+      const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) audioTrack.enabled = isMicOn;
+    } else {
+      // If for some reason stream isn't ready, try initializing it one last time
+      const stream = await initLocalStream();
+      if (stream) {
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) videoTrack.enabled = isCameraOn;
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) audioTrack.enabled = isMicOn;
+      }
     }
 
     // Check for host token in sessionStorage
@@ -489,7 +495,7 @@ export default function GuestVideoRoom() {
 
               <p className="text-[10px] text-zinc-500 text-center px-4 leading-normal">
                 By joining, you agree to our private 1-on-1 calling terms. Your
-                media is encrypted end-to-peer.
+                media is encrypted end-to-end.
               </p>
             </form>
           </div>
