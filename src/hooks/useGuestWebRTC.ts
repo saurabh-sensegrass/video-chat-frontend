@@ -42,8 +42,29 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
   const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
 
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoElemRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoElemRef = useRef<HTMLVideoElement | null>(null);
+
+  const localVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    if (node) {
+      localVideoElemRef.current = node;
+      if (localStreamRef.current) {
+        node.srcObject = localStreamRef.current;
+      }
+    }
+  }, []);
+
+  const remoteVideoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      if (node) {
+        remoteVideoElemRef.current = node;
+        if (remoteStream) {
+          node.srcObject = remoteStream;
+        }
+      }
+    },
+    [remoteStream],
+  );
 
   const getRTCConfiguration = (): RTCConfiguration => ({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -81,8 +102,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
     setIsRemoteMicOn(true);
     setIsRemoteCameraOn(true);
 
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (localVideoElemRef.current) localVideoElemRef.current.srcObject = null;
+    if (remoteVideoElemRef.current) remoteVideoElemRef.current.srcObject = null;
   }, [socket, roomId, callState, stopMediaTracks]);
 
   // Keep endCallRef in sync with the latest endCall implementation
@@ -147,8 +168,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
       localStreamRef.current = stream;
       setLocalStream(stream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
+      if (localVideoElemRef.current) {
+        localVideoElemRef.current.srcObject = stream;
       }
       return stream;
     } catch (err) {
@@ -171,10 +192,15 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
       });
 
       pc.ontrack = (event) => {
-        console.log("Received remote track");
+        console.log("Received remote track:", event.track.kind);
         setRemoteStream(event.streams[0]);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
+        if (remoteVideoElemRef.current) {
+          console.log("Attaching remote stream to video element");
+          remoteVideoElemRef.current.srcObject = event.streams[0];
+        } else {
+          console.warn(
+            "remoteVideoElemRef.current is null when track received",
+          );
         }
         setCallState("connected");
       };
@@ -204,8 +230,10 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
     const pc = createPeerConnection(stream);
     try {
+      console.log("Creating WebRTC offer...");
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      console.log("Sending offer to room:", roomId);
       socket?.emit("webrtc-offer", { offer, roomId });
     } catch (err) {
       console.error("Error creating guest offer", err);
@@ -272,7 +300,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         setIsRemoteScreenSharing(false);
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        if (remoteVideoElemRef.current)
+          remoteVideoElemRef.current.srcObject = null;
       }
     });
 
@@ -288,7 +317,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         setIsRemoteScreenSharing(false);
         setIsRemoteMicOn(true);
         setIsRemoteCameraOn(true);
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        if (remoteVideoElemRef.current)
+          remoteVideoElemRef.current.srcObject = null;
       }
     });
 
@@ -450,17 +480,21 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
 
   // Reactively attach local stream
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
+    if (localVideoElemRef.current && localStream) {
+      if (localVideoElemRef.current.srcObject !== localStream) {
+        localVideoElemRef.current.srcObject = localStream;
+      }
     }
-  }, [localStream, localVideoRef]);
+  }, [localStream]);
 
   // Reactively attach remote stream
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    if (remoteVideoElemRef.current && remoteStream) {
+      if (remoteVideoElemRef.current.srcObject !== remoteStream) {
+        remoteVideoElemRef.current.srcObject = remoteStream;
+      }
     }
-  }, [remoteStream, remoteVideoRef]);
+  }, [remoteStream]);
 
   const toggleCamera = useCallback(() => {
     // Bypass check for host (creator)
@@ -565,8 +599,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         }
 
         // Fix local video preview
-        if (localVideoRef.current && localStreamRef.current) {
-          localVideoRef.current.srcObject = localStreamRef.current;
+        if (localVideoElemRef.current && localStreamRef.current) {
+          localVideoElemRef.current.srcObject = localStreamRef.current;
         }
       } else {
         // Start screen share
@@ -594,8 +628,8 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
               .find((s) => s.track?.kind === "video");
             if (sender) sender.replaceTrack(videoTrack).catch(console.error);
           }
-          if (localVideoRef.current && localStreamRef.current) {
-            localVideoRef.current.srcObject = localStreamRef.current;
+          if (localVideoElemRef.current && localStreamRef.current) {
+            localVideoElemRef.current.srcObject = localStreamRef.current;
           }
         };
 
@@ -616,9 +650,9 @@ export function useGuestWebRTC(socket: Socket | null, roomId: string) {
         }
 
         // Preview the screen share locally instead of face camera
-        if (localVideoRef.current) {
+        if (localVideoElemRef.current) {
           const previewStream = new MediaStream([screenTrack]);
-          localVideoRef.current.srcObject = previewStream;
+          localVideoElemRef.current.srcObject = previewStream;
         }
       }
     } catch (err) {
